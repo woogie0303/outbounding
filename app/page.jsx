@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import DottedField from './DottedField';
 import Picker from './Picker';
 import companies from './companies.json';
 import { findCompanies, infer, industries, industryGroups, regions, safeUrl, suggestions, toCsv } from './data.mjs';
@@ -204,7 +203,6 @@ export default function Workspace() {
   const landing = tab === 'search' && results === null;
   return (
     <div className={landing ? 'shell landing' : 'shell'}>
-      {landing && <DottedField />}
       {!landing && <header className="topbar">
         <button className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); setDelivery(false); changeTab('search'); }}>아웃바운딩</button>
         <nav aria-label="워크스페이스">

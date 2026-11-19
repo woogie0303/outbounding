@@ -144,7 +144,6 @@ dialog[open]:has(.detail){animation:drawer-in 220ms var(--search-ease)}
 @media(prefers-reduced-motion:reduce){dialog[open]:has(.detail){animation:none}}
 
 :root{--bg:#f6f6f5;--ink:#202123;--brand:#292b30;--muted:#606168;--line:#dededf;--tint:#ededf0}
-.landing{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 78% 82%,#e1e5ef 0%,transparent 43%),var(--bg)}
 .landing .search-stage{width:min(100%,660px)}
 .landing .search-box{border:1px solid #d7d7db;border-radius:20px;background:#fefefe;box-shadow:0 22px 74px -31px #25273935;padding:22px 24px 13px}
 .composer-brand{display:flex;align-items:center;gap:8px;text-align:left;font:650 15px/1.2 system-ui,sans-serif;letter-spacing:-.045em;color:#383940}
@@ -164,34 +163,7 @@ dialog[open]:has(.detail){animation:drawer-in 220ms var(--search-ease)}
 .picker-sheet::backdrop{background:#21222a45;backdrop-filter:blur(3px)}
 .records th{background:#eeeef0}.records tbody tr:hover,.records tbody tr:focus-within{background:#f0f0f3}
 @media(max-width:520px){.landing .search-box{padding:18px 13px 9px}.composer-brand{padding-left:3px}.picker-sheet section{padding:20px}.landing .search-line{gap:2px}}
-.dotted-field{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1;mask-image:linear-gradient(155deg,#0003 5%,#0007 54%,#000 100%)}
 .search-status{text-align:center;color:var(--muted);margin-top:12px}
-
-/* Concentrate the blue light around the existing corner contours. */
-.landing{
-  background:var(--bg);
-}
-.landing::after{
-  content:"";
-  position:absolute;
-  pointer-events:none;
-  z-index:-2;
-  inset:26% -12% -14% 30%;
-  background:radial-gradient(ellipse at 80% 77%,#e7e6fa 0%,transparent 29%),
-    radial-gradient(ellipse at 79% 80%,#a9c9f0 0%,#d8e9f8 36%,transparent 68%);
-  transform-origin:80% 80%;
-  animation:corner-light 10s ease-in-out infinite alternate;
-}
-@keyframes corner-light{
-  from{transform:translate(1%,2%) scale(.96)}
-  to{transform:translate(-4%,-3%) scale(1.06)}
-}
-@media(prefers-reduced-motion:reduce){
-  .landing::after{animation:none}
-}
-.landing .dotted-field{
-  mask-image:radial-gradient(ellipse 60% 65% at 100% 100%,black 30%,#0009 69%,transparent 100%);
-}
 
 .option-browser{margin:12px 16px 0;text-align:left;border-top:1px solid var(--line);padding-top:16px}
 .option-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
