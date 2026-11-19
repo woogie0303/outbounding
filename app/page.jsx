@@ -30,6 +30,7 @@ export default function Workspace() {
   const [searched, setSearched] = useState(null);
   const [saved, setSaved] = useState({});
   const [recent, setRecent] = useState([]);
+  const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState([]);
   const [filter, setFilter] = useState(false);
   const [showConditions, setShowConditions] = useState(false);
@@ -95,6 +96,7 @@ export default function Workspace() {
       setMessage('업종과 지역을 입력하거나 선택해 주세요.');
       return;
     }
+    setSelecting(false);
     setBusy(true);
     setShowConditions(false);
 
@@ -125,6 +127,7 @@ export default function Workspace() {
   }
 
   function changeTab(value) {
+    setSelecting(false);
     setTab(value);
     setShowConditions(false);
     setMessage('');
@@ -228,8 +231,10 @@ export default function Workspace() {
                     업종: { groups: industryGroups, value: industry, change: setIndustry },
                     지역: { groups: { 광역: regions.slice(0, 3), 경기권: regions.slice(3) }, value: region, change: setRegion }
                   }} />
+                  <details className="search-history"><summary>추천·최근 검색</summary>
                   <div className="suggestions"><span>추천 검색</span>{suggestions.map((value) => <button type="button" key={value} onClick={() => applyQuery(value)}>{value}</button>)}</div>
                   {recent.length > 0 && <div className="suggestions"><span>최근 검색</span>{recent.map((item) => <button type="button" key={JSON.stringify(item)} onClick={() => { setQuery(item.query); setIndustry(item.industry); setRegion(item.region); setDelivery(item.delivery); }}>{item.region} · {item.industry}{item.delivery && ' · 직접 배송'}</button>)}</div>}
+                  </details>
                   {landing && <button type="button" className="saved-shortcut" onClick={() => changeTab('saved')}><Icon name="saved" size={15} /> 저장 목록</button>}
                   <div className="search-controls option-actions">
                     <button className="primary" disabled={busy || !industry || !region}>이 조건으로 검색 <Icon name="arrow" size={15} /></button>
@@ -247,17 +252,27 @@ export default function Workspace() {
               <button className="outline" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={16} /> CSV 내보내기</button>
             </div>
             <div className="toolbar">
-              <label><input type="checkbox" checked={visible.length > 0 && chosen.length === visible.length} disabled={!visible.length} onChange={(event) => setSelected(event.target.checked ? visible.map((row) => row.id) : [])} /> 전체 선택</label>
+              <button type="button" className="batch-toggle" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? '선택 종료' : '목록 선택'}</button>
+              {selecting && <label><input type="checkbox" checked={visible.length > 0 && chosen.length === visible.length} disabled={!visible.length} onChange={(event) => setSelected(event.target.checked ? visible.map((row) => row.id) : [])} /> 전체 선택</label>}
               <label><input type="checkbox" checked={filter} onChange={(event) => { setFilter(event.target.checked); setSelected([]); }} /> 직접 배송 확인</label>
               {chosen.length > 0 && <button className="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</button>}
             </div>
             {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p><button className="outline" onClick={() => { if (filter) {setFilter(false); return;} changeTab('search'); setShowConditions(true); document.getElementById('query')?.focus(); window.scrollTo(0,0); }}>{filter ? '배송 필터 해제' : tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</button></div>}
-            <div className="lead-list">{visible.map((row) => <article className="lead" key={row.id}>
-              <div className="lead-head"><input type="checkbox" aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onChange={(event) => setSelected(event.target.checked ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /><span>{row.region} {row.city}</span><button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button></div>
-              <button className="lead-name" onClick={() => openDetail(row)}>{row.name}<Icon name="arrow" size={19} /></button>
-              <div className="lead-tags"><span>{row.industry}</span>{row.direct_delivery && <span>직접 배송 확인</span>}</div>
-              <p>{row.evidence}</p>
-              <div className="lead-foot"><span>{row.phone || '대표전화 확인 필요'}</span><a href={safeUrl(row.source_url)} target="_blank" rel="noreferrer">출처 ↗ · {row.verified_on}</a></div>
+            <div className="lead-list">{visible.map((row) => <article className="account-row" key={row.id}>
+              {selecting && <input type="checkbox" aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onChange={(event) => setSelected(event.target.checked ? [...selected, row.id] : selected.filter((id) => id !== row.id))} />}
+              <div className="account-body">
+                <button className="account-open" onClick={() => openDetail(row)}>
+                  <strong>{row.name}</strong>
+                  <span>{[row.region, row.city, row.industry].filter(Boolean).join(' · ')}</span>
+                </button>
+                <p>{row.evidence}</p>
+                <div className="account-links">
+                  {row.direct_delivery && <span>직접 배송 확인</span>}
+                  {row.phone && <a href={'tel:' + row.phone}>{row.phone}</a>}
+                  <a href={safeUrl(row.source_url)} target="_blank" rel="noreferrer">출처 ↗ · {row.verified_on}</a>
+                </div>
+              </div>
+              <button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button>
             </article>)}</div>
           </section>}
           {!landing && <footer><Icon name="globe" size={15} /> 현재 등록된 공개 출처 기반의 업체를 검색합니다.</footer>}
