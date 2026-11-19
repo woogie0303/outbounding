@@ -309,3 +309,9 @@ dialog[open]:has(.detail){animation:drawer-in 220ms var(--search-ease)}
 .record-panel>div{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
 @media(max-width:759px){.crm-register{display:block}.record-panel{display:none}.crm-table th,.crm-table td{padding:8px}.crm-table tr[data-active=true] td{background:white}}
 @media(max-width:480px){.crm-table :is(th,td):nth-last-child(2){display:none}}
+
+.crm-register{display:block}
+.option-tabs{display:flex;gap:6px;background:transparent;padding:0}
+.option-tabs button{flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:42px;background:#f5f6f8;border:1px solid #e6e8ec;border-radius:8px}
+.option-tabs button[aria-expanded=true]{background:#ebeff5;border-color:#aeb9c7}
+.option-tabs small{margin:0}.option-tabs strong{font-size:13px}
