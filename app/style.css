@@ -115,3 +115,24 @@ nav small{background:#fff;color:#1f4ec7}
 @keyframes results-enter{from{transform:translateY(9px);opacity:0}to{transform:translateY(0);opacity:1}}
 @media(max-width:500px){.search-line{min-height:62px;gap:7px;padding:8px 8px 8px 13px}.search-line input{font-size:16px}.condition-toggle{width:36px}.topbar .brand{font-size:15px}nav button{padding:7px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){.condition-reveal,.condition-reveal[data-open=true],.search-submit{transition:none}.search-progress,.scan-field::before,.scan-field::after,.scan-field i,.results{animation:none}}
+.picker-trigger,.picker-sheet button{background:#fff;color:var(--ink);border:0;font:inherit}
+.picker-trigger{background:#eef2f7;border-radius:9px;padding:10px 14px;font-weight:600}
+.picker-trigger span{margin-left:8px;color:var(--muted)}
+.picker-sheet{width:min(440px,calc(100vw - 32px))}
+.picker-sheet[open]{animation:sheet-in 240ms var(--search-ease)}
+.picker-sheet section{padding:22px}
+.picker-sheet header,.picker-list button{display:flex;align-items:center;justify-content:space-between}
+.picker-sheet header button{width:40px;height:40px;border-radius:50%;background:#f2f4f7;font-size:22px}
+.picker-sheet input{width:100%;padding:13px 15px;margin:14px 0;border:0;border-radius:10px;background:#f1f4f8;font-size:16px}
+.picker-list{height:min(48svh,390px);overflow:auto;overscroll-behavior:contain;text-align:left}
+.picker-list h3{font-size:12px;color:var(--muted);margin:18px 12px 6px}
+.picker-list button{width:100%;padding:12px;border-radius:8px;text-align:left}
+.picker-list button:hover,.picker-list button[aria-pressed=true]{background:var(--tint);color:#2147aa}
+button:active:not(:disabled){scale:.97}
+.search-progress{position:fixed;inset:0;z-index:10;margin:0;min-height:100svh;border-radius:0;background:#f8faff;pointer-events:auto}
+.progress-copy strong{font-size:clamp(24px,4vw,42px);letter-spacing:-.04em}
+.progress-conditions span{padding:8px 15px;background:#e7eefc}
+.scan-field::before,.scan-field::after{top:64%;width:min(70vw,680px);height:34vh}
+@keyframes sheet-in{from{opacity:.3;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:550px){.picker-sheet{width:100%;max-width:100%;margin:auto 0 0;border-radius:22px 22px 0 0}.picker-sheet section{padding-bottom:max(22px,env(safe-area-inset-bottom))}}
+@media(prefers-reduced-motion:reduce){.picker-sheet[open]{animation:none}button:active:not(:disabled){scale:1}}

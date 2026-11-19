@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import Picker from './Picker';
 import companies from './companies.json';
-import { findCompanies, infer, industries, regions, safeUrl, suggestions, toCsv } from './data.mjs';
+import { findCompanies, infer, industries, industryGroups, regions, safeUrl, suggestions, toCsv } from './data.mjs';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -223,8 +224,8 @@ export default function Workspace() {
               <div id="search-conditions" className="condition-reveal" data-open={showConditions} inert={!showConditions}>
                 <div className="condition-inner">
                   <div className="search-controls">
-                    <label><Icon name="building" /><select aria-label="업종" value={industry} onChange={(event) => setIndustry(event.target.value)}><option value="">업종 선택</option>{industries.map((name) => <option key={name}>{name}</option>)}</select></label>
-                    <label><Icon name="pin" /><select aria-label="지역" value={region} onChange={(event) => setRegion(event.target.value)}><option value="">지역 선택</option>{regions.map((name) => <option key={name}>{name}</option>)}</select></label>
+                    <Picker label="업종" groups={industryGroups} value={industry} onChange={setIndustry} />
+                    <Picker label="지역" groups={{ 광역: regions.slice(0, 3), 경기권: regions.slice(3) }} value={region} onChange={setRegion} />
                     <label className="plain delivery"><input type="checkbox" checked={delivery} onChange={(event) => setDelivery(event.target.checked)} /> 직접 배송</label>
                   </div>
                   <div className="suggestions"><span>추천 검색</span>{suggestions.map((value) => <button type="button" key={value} onClick={() => applyQuery(value)}>{value}</button>)}</div>
