@@ -1,21 +1,26 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
-export default function Picker({ label, groups, value, onChange }) {
-  const dialog = useRef(null);
+export default function Picker({ fields }) {
+  const [active, setActive] = useState('업종');
   const [term, setTerm] = useState('');
-  const normalize = (text) => text.replaceAll(' ', '').toLowerCase();
-  const matches = Object.entries(groups).map(([group, entries]) => [
-    group, entries.filter((entry) => normalize(group + entry).includes(normalize(term.trim())))
-  ]).filter(([, entries]) => entries.length);
-  return <>
-    <button type="button" className="picker-trigger" aria-haspopup="dialog" onClick={() => { setTerm(''); dialog.current.showModal(); }}>{value || label + ' 선택'} <span aria-hidden="true">⌄</span></button>
-    <dialog ref={dialog} className="picker-sheet" aria-label={label + ' 선택'} onClick={(event) => { if (event.target === dialog.current) dialog.current.close(); }}>
-      <section>
-        <header><h2>{label} 선택</h2><button type="button" aria-label="닫기" onClick={() => dialog.current.close()}>×</button></header>
-        <input type="search" autoFocus aria-label={label + ' 검색'} placeholder={label + ' 검색'} value={term} onChange={(event) => setTerm(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') event.preventDefault(); }} />
-        <div className="picker-list">{matches.map(([group, entries]) => <div key={group}><h3>{group}</h3><div className="picker-options">{entries.map((entry) => <button key={entry} type="button" aria-pressed={entry === value} onClick={() => { onChange(entry); dialog.current.close(); }}>{entry}{entry === value && <span>✓</span>}</button>)}</div></div>)}{!matches.length && <p>일치하는 항목이 없습니다. 다른 이름으로 검색해 보세요.</p>}</div>
-      </section>
-    </dialog>
-  </>;
+  const field = fields[active];
+  const normalize = (s) => s.replaceAll(' ', '').toLowerCase();
+  const matches = Object.entries(field.groups).map(([name, options]) => [
+    name, options.filter((option) => normalize(name + option).includes(normalize(term)))
+  ]).filter(([, options]) => options.length);
+  return <div className="option-browser">
+    <div className="option-tabs">{Object.entries(fields).map(([label, item]) =>
+      <button key={label} type="button" aria-pressed={active === label} onClick={() => {setActive(label); setTerm('');}}>
+        <small>{label}</small><strong>{item.value || label + ' 선택'}</strong>
+      </button>)}</div>
+    <input className="option-search" type="search" aria-label={active + ' 검색'} placeholder={active + ' 이름으로 찾기'} value={term} onChange={(e) => setTerm(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') e.preventDefault();}} />
+    <div className="option-list" key={active}>
+      {matches.map(([name, options]) => <section key={name}><h3>{name}</h3><div>{options.map((option) =>
+        <button key={option} type="button" aria-pressed={field.value === option} onClick={() => {
+          field.change(option); setTerm(''); if (active === '업종' && !fields['지역'].value) setActive('지역');
+        }}>{option}</button>)}</div></section>)}
+      {!matches.length && <p>일치하는 항목이 없습니다.</p>}
+    </div>
+  </div>;
 }
