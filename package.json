@@ -1,0 +1,1 @@
+{"name":"outbounding","version":"0.1.0","private":true,"scripts":{"dev":"next dev","build":"next build"},"dependencies":{"@supabase/supabase-js":"2.106.2","next":"^16","react":"^19","react-dom":"^19"}}

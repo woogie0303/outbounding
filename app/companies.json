@@ -1,0 +1,6 @@
+[
+ {"id":"garamfood","name":"참가람푸드","industry":"식자재 유통사","region":"경기도","city":"남양주시","website":"https://garamfood.co.kr/ko","source_url":"https://garamfood.co.kr/ko/about","verified_on":"2026-11-19","evidence":"회사 소개에 남양주 본사와 서울·경기 외식업체 대상 종합 식자재 납품, 자사 차량 배송 권역이 명시되어 있습니다.","direct_delivery":true},
+ {"id":"freshone","name":"프레시원 강남","industry":"식자재 유통사","region":"경기도","city":"용인시","address":"경기도 용인시 수지구 손곡로 20","phone":"1660-1033","website":"https://freshone.com/","source_url":"https://freshone.com/","verified_on":"2026-11-19","evidence":"공식 홈페이지에서 용인 강남 거점과 물류센터 기반 식자재 배송을 안내합니다.","direct_delivery":false},
+ {"id":"kimpomaca","name":"김포맥아식품","industry":"식품 제조업체","region":"경기도","city":"김포시","address":"경기도 김포시 하성면 가금로 421","phone":"031-998-0969","website":"https://kimpomaca.co.kr/","source_url":"https://kimpomaca.co.kr/","verified_on":"2026-11-19","evidence":"공식 홈페이지에 김포 공장 주소와 엿기름 및 곡물 가공식품 제조 안내가 있습니다.","direct_delivery":false},
+ {"id":"daewoonfood","name":"대운푸드시스템","industry":"식품 제조업체","region":"경기도","city":"김포시","address":"경기도 김포시 옹주물로 31-38","website":"http://www.daewoonfood.com","source_url":"https://www.gimpo.go.kr/portal/selectBbsNttView.do?bbsNo=500&key=1302&nttNo=733712","verified_on":"2026-11-19","evidence":"김포시 기업소개에 김포 사업장과 냉동 수산식품·공산품 생산이 기재되어 있습니다.","direct_delivery":false}
+]
