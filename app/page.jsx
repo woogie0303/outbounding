@@ -202,9 +202,9 @@ export default function Workspace() {
 
   const landing = tab === 'search' && results === null;
   return (
-    <div className={landing ? 'shell landing' : 'shell'}>
+    <div className={landing ? 'shell landing' : 'shell workspace'}>
       {!landing && <header className="topbar">
-        <button className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); setDelivery(false); changeTab('search'); }}>아웃바운딩</button>
+        <button className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); setDelivery(false); changeTab('search'); }}><span aria-hidden="true" className="route-mark" /> 아웃바운딩</button>
         <nav aria-label="워크스페이스">
           <button className={tab === 'search' ? 'active' : ''} onClick={() => changeTab('search')}><Icon name="search" size={16} /> 업체 발굴</button>
           <button className={tab === 'saved' ? 'active' : ''} onClick={() => changeTab('saved')}><Icon name="saved" size={16} /> 저장 목록 <small>{Object.keys(saved).length}</small></button>
@@ -212,6 +212,7 @@ export default function Workspace() {
       </header>}
       <main>
         <div className="content">
+          {!landing && <div className="workspace-path"><Icon name="building" size={15} /> 업체 관리 <span>/</span> <strong>{tab === 'saved' ? '저장 목록' : '업체 발굴'}</strong></div>}
           {tab === 'search' && <section className="search-stage" aria-label="업체 발굴">
             <h1 className="sr-only">아웃바운딩 업체 검색</h1>
             <form className="search-box" onSubmit={search}>
@@ -258,11 +259,11 @@ export default function Workspace() {
             {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p><button className="outline" onClick={() => { if (filter) {setFilter(false); return;} changeTab('search'); setShowConditions(true); document.getElementById('query')?.focus(); window.scrollTo(0,0); }}>{filter ? '배송 필터 해제' : tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</button></div>}
             {visible.length > 0 && <div className="crm-register">
               <div className="crm-table-wrap"><table className="crm-table"><caption className="sr-only">업체 레코드</caption><thead><tr>
-                {selecting && <th>선택</th>}<th>업체명</th><th>지역</th><th>대표전화</th><th>목록</th>
+                {selecting && <th>선택</th>}<th>업체명</th><th className="industry-col">업종</th><th>지역</th><th className="phone-col">대표전화</th><th>저장</th>
               </tr></thead><tbody>{visible.map((row) => <tr key={row.id}>
                 {selecting && <td><input type="checkbox" aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onChange={(event) => setSelected(event.target.checked ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></td>}
-                <td><button className="crm-name" onClick={() => openDetail(row)}>{row.name}</button><small>{row.industry}</small></td>
-                <td>{row.city || row.region}</td><td>{row.phone || '확인 필요'}</td><td><button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button></td>
+                <td><button className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}</button></td>
+                <td className="industry-col"><span className="industry-tag">{row.industry}</span></td><td>{row.city || row.region}</td><td className="phone-col">{row.phone || '확인 필요'}</td><td><button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button></td>
               </tr>)}</tbody></table></div>
 
             </div>}
