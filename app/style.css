@@ -164,3 +164,26 @@ dialog[open]:has(.detail){animation:drawer-in 220ms var(--search-ease)}
 @keyframes drawer-in{from{transform:translateX(30px);opacity:.25}to{transform:translateX(0);opacity:1}}
 @media(max-width:650px){.records th,.records td{padding:10px 6px}.records :is(th,td):nth-child(4),.records :is(th,td):nth-child(5){display:none}.records td:last-child .outline{font-size:12px;padding:7px}.records small{font-size:11px}}
 @media(prefers-reduced-motion:reduce){dialog[open]:has(.detail){animation:none}}
+
+:root{--bg:#f6f6f5;--ink:#202123;--brand:#292b30;--muted:#606168;--line:#dededf;--tint:#ededf0}
+.landing{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 78% 82%,#e1e5ef 0%,transparent 43%),var(--bg)}
+.landing::before{content:"";position:absolute;pointer-events:none;z-index:-1;inset:55% -20% -70% 21%;transform:rotate(-16deg);background:repeating-radial-gradient(ellipse at 68% 100%,transparent 0 21px,#75809636 22px,transparent 23px 35px);mask-image:linear-gradient(150deg,transparent 10%,black 75%)}
+.landing .search-stage{width:min(100%,660px)}
+.landing .search-box{border:1px solid #d7d7db;border-radius:20px;background:#fefefe;box-shadow:0 22px 74px -31px #25273935;padding:22px 24px 13px}
+.composer-brand{display:flex;align-items:center;gap:8px;text-align:left;font:650 15px/1.2 system-ui,sans-serif;letter-spacing:-.045em;color:#383940}
+.route-mark{width:17px;height:15px;background:currentColor;clip-path:polygon(0 100%,35% 0,53% 0,18% 100%,38% 100%,73% 0,100% 0,65% 100%)}
+.landing .search-line{grid-template-columns:minmax(0,1fr) auto auto;padding:6px 0 0;gap:5px}
+.landing .search-line>svg{display:none}
+.landing .search-line input{font-size:clamp(17px,2.5vw,25px);letter-spacing:-.045em}
+.landing .search-line input::placeholder{color:#666870}
+.search-submit{background:#25262b;border-radius:12px}
+.search-submit:hover:not(:disabled){background:#454750}
+.picker-sheet header button,.picker-trigger,.picker-sheet input{background:#f3f3f4}
+.picker-sheet section{padding:24px}
+.picker-sheet header{margin-bottom:5px}
+.picker-sheet .picker-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
+.picker-list h3{font-weight:700;color:#51525b;border-bottom:1px solid var(--line);padding-bottom:8px;margin:16px 0 5px}
+.picker-list button{font-size:14px;padding:10px;min-height:42px}
+.picker-sheet::backdrop{background:#21222a45;backdrop-filter:blur(3px)}
+.records th{background:#eeeef0}.records tbody tr:hover,.records tbody tr:focus-within{background:#f0f0f3}
+@media(max-width:520px){.landing .search-box{padding:18px 13px 9px}.composer-brand{padding-left:3px}.picker-sheet section{padding:20px}.landing .search-line{gap:2px}}

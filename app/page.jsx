@@ -214,10 +214,11 @@ export default function Workspace() {
           {tab === 'search' && <section className="search-stage" aria-label="업체 발굴">
             <h1 className="sr-only">아웃바운딩 업체 검색</h1>
             <form className="search-box" onSubmit={search}>
+              {landing && <div className="composer-brand"><span aria-hidden="true" className="route-mark" />Outbounding</div>}
               <div className="search-line">
                 <Icon name="search" size={22} />
                 <label className="sr-only" htmlFor="query">검색 조건</label>
-                <input id="query" value={query} readOnly={busy} maxLength={160} onChange={(event) => applyQuery(event.target.value)} placeholder="어떤 업체를 찾으세요?" />
+                <input id="query" value={query} readOnly={busy} maxLength={160} onChange={(event) => applyQuery(event.target.value)} placeholder="찾고 싶은 업체를 입력하세요" />
                 <button type="button" className="condition-toggle" disabled={busy} aria-label="검색 필터" aria-expanded={showConditions} aria-controls="search-conditions" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={18} /></button>
                 <button type="submit" className="search-submit" aria-label="업체 찾기" disabled={busy}><Icon name="arrow" size={21} /></button>
               </div>
