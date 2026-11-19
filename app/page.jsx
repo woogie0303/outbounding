@@ -2,6 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Checkbox } from '../components/ui/checkbox';
+import { Badge } from '../components/ui/badge';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption } from '../components/ui/table';
 import Picker from './Picker';
 import companies from './companies.json';
 import { findCompanies, infer, industries, industryGroups, regions, safeUrl, suggestions, toCsv } from './data.mjs';
@@ -40,7 +50,7 @@ export default function Workspace() {
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState('');
   const [initialized, setInitialized] = useState(false);
-  const dialog = useRef(null);
+  const detailTrigger = useRef(null);
   const writeLock = useRef(false);
 
   useEffect(() => {
@@ -68,9 +78,7 @@ export default function Workspace() {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    if (detail && !dialog.current.open) dialog.current.showModal();
-  }, [detail]);
+
 
   async function loadSaved(account) {
     const { data, error } = await db.from('saved_companies').select('note,companies(*)').eq('user_id', account.id);
@@ -195,6 +203,7 @@ export default function Workspace() {
   }
 
   function openDetail(row) {
+    detailTrigger.current = document.activeElement;
     setMessage('');
     setDetail(row);
     setNote(saved[row.id]?.note ?? '');
@@ -204,25 +213,24 @@ export default function Workspace() {
   return (
     <div className={landing ? 'shell landing' : 'shell workspace'}>
       {!landing && <header className="topbar">
-        <button className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); setDelivery(false); changeTab('search'); }}><span aria-hidden="true" className="route-mark" /> 아웃바운딩</button>
-        <nav aria-label="워크스페이스">
-          <button className={tab === 'search' ? 'active' : ''} onClick={() => changeTab('search')}><Icon name="search" size={16} /> 업체 발굴</button>
-          <button className={tab === 'saved' ? 'active' : ''} onClick={() => changeTab('saved')}><Icon name="saved" size={16} /> 저장 목록 <small>{Object.keys(saved).length}</small></button>
-        </nav>
+        <Button variant="ghost" className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); setDelivery(false); changeTab('search'); }}><span aria-hidden="true" className="route-mark" /> 아웃바운딩</Button>
+        <Tabs value={tab} onValueChange={changeTab}><TabsList aria-label="워크스페이스">
+          <TabsTrigger value="search">업체 발굴</TabsTrigger>
+          <TabsTrigger value="saved">저장 목록 {Object.keys(saved).length}</TabsTrigger>
+        </TabsList></Tabs>
       </header>}
       <main>
         <div className="content">
-          {!landing && <div className="workspace-path"><Icon name="building" size={15} /> 업체 관리 <span>/</span> <strong>{tab === 'saved' ? '저장 목록' : '업체 발굴'}</strong></div>}
           {tab === 'search' && <section className="search-stage" aria-label="업체 발굴">
             <h1 className="sr-only">아웃바운딩 업체 검색</h1>
             <form className="search-box" onSubmit={search}>
               {landing && <div className="composer-brand"><span aria-hidden="true" className="route-mark" />Outbounding</div>}
               <div className="search-line">
                 <Icon name="search" size={22} />
-                <label className="sr-only" htmlFor="query">검색 조건</label>
-                <input id="query" type="search" value={query} readOnly={busy} maxLength={160} onChange={(event) => applyQuery(event.target.value)} placeholder="찾고 싶은 업체를 입력하세요" />
-                <button type="button" className="condition-toggle" disabled={busy} aria-label="검색 필터" aria-expanded={showConditions} aria-controls="search-conditions" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={18} /></button>
-                <button type="submit" className="search-submit" aria-label="업체 찾기" disabled={busy}><Icon name="arrow" size={21} /></button>
+                <Label className="sr-only" htmlFor="query">검색 조건</Label>
+                <Input id="query" type="search" value={query} readOnly={busy} maxLength={160} onChange={(event) => applyQuery(event.target.value)} placeholder="찾고 싶은 업체를 입력하세요" />
+                <Button variant="ghost" type="button" className="condition-toggle" disabled={busy} aria-label="검색 필터" aria-expanded={showConditions} aria-controls="search-conditions" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={18} /></Button>
+                <Button type="submit" className="search-submit" aria-label="업체 찾기" disabled={busy}><Icon name="arrow" size={21} /></Button>
               </div>
               <div id="search-conditions" className="condition-reveal" data-open={showConditions} inert={!showConditions}>
                 <div className="condition-inner">
@@ -230,14 +238,14 @@ export default function Workspace() {
                     업종: { groups: industryGroups, value: industry, change: setIndustry },
                     지역: { groups: { 광역: regions.slice(0, 3), 경기권: regions.slice(3) }, value: region, change: setRegion }
                   }} />}
-                  <details className="search-history"><summary>추천·최근 검색</summary>
-                  <div className="suggestions"><span>추천 검색</span>{suggestions.map((value) => <button type="button" key={value} onClick={() => applyQuery(value)}>{value}</button>)}</div>
-                  {recent.length > 0 && <div className="suggestions"><span>최근 검색</span>{recent.map((item) => <button type="button" key={JSON.stringify(item)} onClick={() => { setQuery(item.query); setIndustry(item.industry); setRegion(item.region); setDelivery(item.delivery); }}>{item.region} · {item.industry}{item.delivery && ' · 직접 배송'}</button>)}</div>}
-                  </details>
-                  {landing && <button type="button" className="saved-shortcut" onClick={() => changeTab('saved')}><Icon name="saved" size={15} /> 저장 목록</button>}
+                  <Collapsible className="search-history"><CollapsibleTrigger asChild><Button type="button" variant="ghost" size="sm">추천·최근 검색</Button></CollapsibleTrigger><CollapsibleContent>
+                  <div className="suggestions"><span>추천 검색</span>{suggestions.map((value) => <Button variant="ghost" type="button" key={value} onClick={() => applyQuery(value)}>{value}</Button>)}</div>
+                  {recent.length > 0 && <div className="suggestions"><span>최근 검색</span>{recent.map((item) => <Button variant="ghost" type="button" key={JSON.stringify(item)} onClick={() => { setQuery(item.query); setIndustry(item.industry); setRegion(item.region); setDelivery(item.delivery); }}>{item.region} · {item.industry}{item.delivery && ' · 직접 배송'}</Button>)}</div>}
+                  </CollapsibleContent></Collapsible>
+                  {landing && <Button variant="ghost" type="button" className="saved-shortcut" onClick={() => changeTab('saved')}><Icon name="saved" size={15} /> 저장 목록</Button>}
                   <div className="search-controls option-actions">
-                    <button className="primary" disabled={busy || !industry || !region}>이 조건으로 검색 <Icon name="arrow" size={15} /></button>
-                    <label className="plain delivery"><input type="checkbox" checked={delivery} onChange={(event) => setDelivery(event.target.checked)} /> 직접 배송</label>
+                    <Button type="submit" className="primary" disabled={busy || !industry || !region}>이 조건으로 검색 <Icon name="arrow" size={15} /></Button>
+                    <Label className="plain delivery"><Checkbox checked={delivery} onCheckedChange={(checked) => setDelivery(checked === true)} /> 직접 배송</Label>
                   </div>
                 </div>
               </div>
@@ -248,41 +256,41 @@ export default function Workspace() {
           {(tab === 'saved' || (results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
             <div className="section-heading">
               <div><h2>{tab === 'saved' ? '저장 목록' : '검색 결과'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}{searched.delivery && ' · 직접 배송'}</p>}</div>
-              <button className="outline" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={16} /> CSV 내보내기</button>
+              <Button variant="outline" className="outline" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={16} /> CSV 내보내기</Button>
             </div>
             <div className="toolbar">
-              <button type="button" className="batch-toggle" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? '선택 종료' : '목록 선택'}</button>
-              {selecting && <label><input type="checkbox" checked={visible.length > 0 && chosen.length === visible.length} disabled={!visible.length} onChange={(event) => setSelected(event.target.checked ? visible.map((row) => row.id) : [])} /> 전체 선택</label>}
-              <label><input type="checkbox" checked={filter} onChange={(event) => { setFilter(event.target.checked); setSelected([]); }} /> 직접 배송 확인</label>
-              {chosen.length > 0 && <button className="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</button>}
+              <Button variant="ghost" type="button" className="batch-toggle" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? '선택 종료' : '목록 선택'}</Button>
+              {selecting && <Label><Checkbox checked={visible.length > 0 && chosen.length === visible.length} disabled={!visible.length} onCheckedChange={(checked) => setSelected(checked === true ? visible.map((row) => row.id) : [])} /> 전체 선택</Label>}
+              <Label><Checkbox checked={filter} onCheckedChange={(checked) => { setFilter(checked === true); setSelected([]); }} /> 직접 배송 확인</Label>
+              {chosen.length > 0 && <Button variant="outline" className="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</Button>}
             </div>
-            {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p><button className="outline" onClick={() => { if (filter) {setFilter(false); return;} changeTab('search'); setShowConditions(true); document.getElementById('query')?.focus(); window.scrollTo(0,0); }}>{filter ? '배송 필터 해제' : tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</button></div>}
+            {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p><Button variant="outline" className="outline" onClick={() => { if (filter) {setFilter(false); return;} changeTab('search'); setShowConditions(true); document.getElementById('query')?.focus(); window.scrollTo(0,0); }}>{filter ? '배송 필터 해제' : tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</Button></div>}
             {visible.length > 0 && <div className="crm-register">
-              <div className="crm-table-wrap"><table className="crm-table"><caption className="sr-only">업체 레코드</caption><thead><tr>
-                {selecting && <th>선택</th>}<th>업체명</th><th className="industry-col">업종</th><th>지역</th><th className="phone-col">대표전화</th><th>저장</th>
-              </tr></thead><tbody>{visible.map((row) => <tr key={row.id}>
-                {selecting && <td><input type="checkbox" aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onChange={(event) => setSelected(event.target.checked ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></td>}
-                <td><button className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}</button></td>
-                <td className="industry-col"><span className="industry-tag">{row.industry}</span></td><td>{row.city || row.region}</td><td className="phone-col">{row.phone || '확인 필요'}</td><td><button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button></td>
-              </tr>)}</tbody></table></div>
+              <div className="crm-table-wrap"><Table className="crm-table"><TableCaption className="sr-only">업체 레코드</TableCaption><TableHeader><TableRow>
+                {selecting && <TableHead>선택</TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead>저장</TableHead>
+              </TableRow></TableHeader><TableBody>{visible.map((row) => <TableRow key={row.id}>
+                {selecting && <TableCell><Checkbox aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onCheckedChange={(checked) => setSelected(checked === true ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></TableCell>}
+                <TableCell><Button variant="ghost" className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}</Button></TableCell>
+                <TableCell className="industry-col"><Badge variant="secondary">{row.industry}</Badge></TableCell><TableCell>{row.city || row.region}</TableCell><TableCell className="phone-col">{row.phone || '확인 필요'}</TableCell><TableCell><Button variant="ghost" className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</Button></TableCell>
+              </TableRow>)}</TableBody></Table></div>
 
             </div>}
           </section>}
 
         </div>
       </main>
-      <dialog ref={dialog} onClick={(event) => { if (event.target === dialog.current) dialog.current.close(); }} onClose={() => { setDetail(null); setMessage(''); }} aria-labelledby="detail-title">
-        {detail && <div className="detail">
-          <div className="section-heading"><h2 id="detail-title">{detail.name}</h2><button className="outline" aria-label="상세 닫기" onClick={() => dialog.current.close()}><Icon name="close" /></button></div>
-          <p className="metadata">{detail.region} {detail.city} · {detail.industry}</p>
+      <Dialog open={Boolean(detail)} onOpenChange={(open) => { if (!open) { setDetail(null); setMessage(''); } }}>
+        {detail && <DialogContent className="detail" onCloseAutoFocus={(event) => { event.preventDefault(); detailTrigger.current?.focus(); }}>
+          <DialogTitle>{detail.name}</DialogTitle>
+          <DialogDescription>{detail.region} {detail.city} · {detail.industry}</DialogDescription>
           <dl><dt>주소</dt><dd>{detail.address || '확인 필요'}</dd><dt>대표전화</dt><dd>{detail.phone || '확인 필요'}</dd><dt>사업용 이메일</dt><dd>{detail.email || '확인 필요'}</dd><dt>홈페이지</dt><dd>{safeUrl(detail.website) ? <a href={safeUrl(detail.website)} target="_blank" rel="noreferrer">홈페이지 열기 ↗</a> : '확인 필요'}</dd></dl>
           <h3>확인된 정보</h3><p>{detail.evidence}</p><p><a href={safeUrl(detail.source_url)} target="_blank" rel="noreferrer">출처 열기 ↗</a> · {detail.verified_on} 확인</p>
           {detail.industry === industries[0] && <><h3>첫 통화에서 확인할 질문</h3><p>{detail.direct_delivery ? '자체 배송 차량은 몇 대이고 배차는 어떻게 관리하시나요?' : '배송을 직접 운영하시나요, 외부 운송사를 이용하시나요?'}</p></>}
-          <label htmlFor="note"><strong>영업 메모</strong></label><textarea id="note" value={note} maxLength={2000} placeholder="다음 연락에서 확인할 내용을 적어보세요." onChange={(event) => setNote(event.target.value)} />
-          <button className="primary" disabled={isDisabled} onClick={() => persist([detail], 'note')}>{saved[detail.id] ? '메모 저장' : '업체와 메모 저장'}</button>
+          <Label htmlFor="note"><strong>영업 메모</strong></Label><Textarea id="note" value={note} maxLength={2000} placeholder="다음 연락에서 확인할 내용을 적어보세요." onChange={(event) => setNote(event.target.value)} />
+          <Button className="primary" disabled={isDisabled} onClick={() => persist([detail], 'note')}>{saved[detail.id] ? '메모 저장' : '업체와 메모 저장'}</Button>
           {message && <p className="notice" role="status">{message}</p>}
-        </div>}
-      </dialog>
+        </DialogContent>}
+      </Dialog>
     </div>
   );
 }
