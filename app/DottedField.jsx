@@ -23,7 +23,7 @@ export default function DottedField() {
         const fieldHeight = height * 1.15;
         const angle = -16 * Math.PI / 180;
         const cos = Math.cos(angle), sin = Math.sin(angle);
-        ctx.fillStyle = 'rgba(117,128,150,.36)';
+        ctx.fillStyle = 'rgba(255,255,255,.94)';
         ctx.beginPath();
         for (let radius = 22; radius < fieldWidth * 1.2; radius += 35) {
           const ry = radius * fieldHeight / (.68 * fieldWidth);
