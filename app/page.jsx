@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import DottedField from './DottedField';
 import Picker from './Picker';
 import companies from './companies.json';
 import { findCompanies, infer, industries, industryGroups, regions, safeUrl, suggestions, toCsv } from './data.mjs';
@@ -96,9 +97,7 @@ export default function Workspace() {
     }
     setBusy(true);
     setShowConditions(false);
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? Promise.resolve()
-      : new Promise((resolve) => setTimeout(resolve, 620));
+
     setMessage('');
     setSelected([]);
     setFilter(false);
@@ -113,7 +112,6 @@ export default function Workspace() {
           if (data.length < 500) break;
         }
       }
-      await motion;
       setResults(findCompanies(rows, industry, region, delivery));
       const conditions = { query, industry, region, delivery };
       setSearched(conditions);
@@ -202,6 +200,7 @@ export default function Workspace() {
   const landing = tab === 'search' && results === null;
   return (
     <div className={landing ? 'shell landing' : 'shell'}>
+      {landing && <DottedField />}
       {!landing && <header className="topbar">
         <button className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); setDelivery(false); changeTab('search'); }}>아웃바운딩</button>
         <nav aria-label="워크스페이스">
@@ -235,12 +234,7 @@ export default function Workspace() {
                 </div>
               </div>
             </form>
-            {busy && <div className="search-progress" role="status">
-              <div className="scan-field" aria-hidden="true"><i /><i /><i /><i /><i /><i /></div>
-              <div className="progress-copy"><strong>조건에 맞는 업체를 찾고 있어요</strong>
-                <div className="progress-conditions">{[region, industry, delivery && '직접 배송'].filter(Boolean).map((value) => <span key={value}>{value}</span>)}</div>
-              </div>
-            </div>}
+            {busy && <p className="search-status" role="status">업체를 찾고 있어요…</p>}
           </section>}
           {message && !detail && <p className="notice" role="status">{message}</p>}
           {(tab === 'saved' || (results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
