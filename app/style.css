@@ -169,10 +169,25 @@ dialog[open]:has(.detail){animation:drawer-in 220ms var(--search-ease)}
 
 /* Concentrate the blue light around the existing corner contours. */
 .landing{
-  background:
-    radial-gradient(ellipse 25% 23% at 91% 91%, #eae9f7 0%, transparent 100%),
-    radial-gradient(ellipse 48% 50% at 100% 100%, #afcdee 0%, #dce9f7 55%, transparent 100%),
-    var(--bg);
+  background:var(--bg);
+}
+.landing::after{
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  z-index:-2;
+  inset:26% -12% -14% 30%;
+  background:radial-gradient(ellipse at 80% 77%,#e7e6fa 0%,transparent 29%),
+    radial-gradient(ellipse at 79% 80%,#a9c9f0 0%,#d8e9f8 36%,transparent 68%);
+  transform-origin:80% 80%;
+  animation:corner-light 10s ease-in-out infinite alternate;
+}
+@keyframes corner-light{
+  from{transform:translate(1%,2%) scale(.96)}
+  to{transform:translate(-4%,-3%) scale(1.06)}
+}
+@media(prefers-reduced-motion:reduce){
+  .landing::after{animation:none}
 }
 .landing .dotted-field{
   mask-image:radial-gradient(ellipse 60% 65% at 100% 100%,black 30%,#0009 69%,transparent 100%);

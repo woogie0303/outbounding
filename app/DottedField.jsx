@@ -28,14 +28,15 @@ export default function DottedField() {
         for (let radius = 22; radius < fieldWidth * 1.2; radius += 35) {
           const ry = radius * fieldHeight / (.68 * fieldWidth);
           const step = 7 / Math.max(radius, ry);
-          for (let t = Math.PI; t <= Math.PI * 2; t += step) {
+          const drift = preference.matches ? 0 : (time / 1400) % 1;
+          for (let t = Math.PI + step * drift; t <= Math.PI * 2; t += step) {
             const u = fieldWidth * .18 + radius * Math.cos(t);
             const v = fieldHeight * .5 + ry * Math.sin(t);
             if (Math.abs(u) > fieldWidth / 2 || Math.abs(v) > fieldHeight / 2) continue;
             const x = width * .705 + u * cos - v * sin;
             let y = height * 1.125 + u * sin + v * cos;
             if (x < -2 || x > width + 2 || y < -10 || y > height + 10) continue;
-            y += 1.8 * Math.sin(phase + t * 3 + radius / 160);
+            y += 5 * Math.sin(phase + t * 3 + radius / 160);
             if (touch) {
               const distance = Math.hypot(x - touch.x, y - touch.y);
               const age = (time - touch.start) / 1400;
