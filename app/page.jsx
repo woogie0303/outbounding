@@ -253,12 +253,18 @@ export default function Workspace() {
               {chosen.length > 0 && <button className="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</button>}
             </div>
             {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p></div>}
-            {visible.map((row) => <article key={row.id} className="company">
-              <input type="checkbox" aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onChange={(event) => setSelected(event.target.checked ? [...selected, row.id] : selected.filter((id) => id !== row.id))} />
-              <div className="company-icon"><Icon name="building" /></div>
-              <div className="company-info"><h3><button onClick={() => openDetail(row)}>{row.name}</button></h3><div className="metadata">{row.region} {row.city} · {row.industry}{row.direct_delivery && <span className="pill">직접 배송 확인</span>}</div><p>{row.evidence}</p><div className="metadata">{row.phone && <span>{row.phone} · </span>}<a href={safeUrl(row.source_url)} target="_blank" rel="noreferrer">출처 ↗</a> · {row.verified_on} 확인</div></div>
-              <button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button>
-            </article>)}
+            {visible.length > 0 && <div className="record-scroll"><table className="records">
+              <caption className="sr-only">업체 목록</caption>
+              <thead><tr>{['선택', '업체명 · 업종', '소재지', '대표전화', '출처 확인일', '저장'].map((title) => <th key={title} scope="col">{title}</th>)}</tr></thead>
+              <tbody>{visible.map((row) => <tr key={row.id}>
+                <td><input type="checkbox" aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onChange={(event) => setSelected(event.target.checked ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></td>
+                <td><button className="record-name" onClick={() => openDetail(row)}>{row.name}</button><small>{row.industry}</small></td>
+                <td>{row.city || row.region}{row.direct_delivery && <small>직접 배송 확인</small>}</td>
+                <td>{row.phone || '확인 필요'}</td>
+                <td><a href={safeUrl(row.source_url)} target="_blank" rel="noreferrer">{row.verified_on} ↗</a></td>
+                <td><button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button></td>
+              </tr>)}</tbody>
+            </table></div>}
           </section>}
           {!landing && <footer><Icon name="globe" size={15} /> 현재 등록된 공개 출처 기반의 업체를 검색합니다.</footer>}
         </div>
