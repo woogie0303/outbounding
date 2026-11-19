@@ -280,3 +280,32 @@ dialog[open]:has(.detail){animation:drawer-in 220ms var(--search-ease)}
 .search-history summary{padding:8px 0;cursor:pointer}
 .search-history .suggestions{margin:5px 0}
 @media(max-width:520px){.lead-list{padding:0 12px}.account-row{gap:8px}.account-open strong{font-size:18px}.results .section-heading h2{font-size:23px}.results .toolbar{gap:6px}}
+
+.shell:not(.landing){background:#fff}
+.shell:not(.landing) .content{max-width:1536px;padding:0 clamp(14px,2.5vw,42px) 28px}
+.shell:not(.landing) .search-stage{margin:18px 0;width:min(100%,540px)}
+.shell:not(.landing) .search-line{min-height:46px;padding:2px 6px 2px 12px}
+.shell:not(.landing) .search-box{box-shadow:none;border-radius:9px}
+.shell:not(.landing) .search-line input{height:38px;font-size:14px}
+.shell:not(.landing) .results{margin-top:20px}
+.shell:not(.landing) .results h2{font-size:24px}
+.crm-register{display:grid;grid-template-columns:minmax(0,1fr) clamp(245px,26vw,370px);border:1px solid #dce0e5;border-radius:8px;overflow:hidden}
+.crm-table-wrap{min-width:0;overflow:auto}
+.crm-table{width:100%;border-collapse:collapse;text-align:left;font-variant-numeric:tabular-nums}
+.crm-table th,.crm-table td{padding:10px 12px;border-bottom:1px solid #e5e8ec;white-space:nowrap;font-size:13px}
+.crm-table th{background:#f4f5f7;color:#556070;font-weight:600;font-size:12px}
+.crm-table td small{display:block;color:#647080;margin-top:3px;font-size:12px}
+.crm-table tr[data-active=true] td{background:#edf3fa}
+.crm-name{background:none;border:0;padding:4px 0;font-weight:700;color:#25334a;text-align:left}
+.crm-name:hover{text-decoration:underline}
+.crm-table .outline{font-size:12px;padding:5px 8px}
+.record-panel{border-left:1px solid #dce0e5;padding:20px;background:#fbfcfd;font-size:13px;line-height:1.6}
+.record-panel h3{font-size:21px;letter-spacing:-.04em}
+.record-panel dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px 14px;padding:16px 0;border-block:1px solid #e1e5ea}
+.record-panel dt{color:#637082}.record-panel dd{margin:0;overflow-wrap:anywhere}
+.record-panel h4,.record-panel label{display:block;font-size:14px;font-weight:700;margin:16px 0 6px}
+.record-panel a{color:#425578}.record-panel p+a{display:inline-block;margin-top:6px;font-size:12px}
+.record-panel textarea{width:100%;border:1px solid #cfd6de;border-radius:6px;padding:10px;min-height:78px;resize:vertical}
+.record-panel>div{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
+@media(max-width:759px){.crm-register{display:block}.record-panel{display:none}.crm-table th,.crm-table td{padding:8px}.crm-table tr[data-active=true] td{background:white}}
+@media(max-width:480px){.crm-table :is(th,td):nth-last-child(2){display:none}}

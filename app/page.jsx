@@ -20,6 +20,21 @@ function Icon({ name, size = 18 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={symbols[name]} /></svg>;
 }
 
+function RecordPanel({ row, savedNote, disabled, onSave, onDetails }) {
+  const [draft, setDraft] = useState(null);
+  return <aside className="record-panel" aria-label="선택한 업체">
+    <h3>{row.name}</h3><p className="metadata">{row.industry}</p>
+    <dl><dt>소재지</dt><dd>{row.address || [row.region, row.city].filter(Boolean).join(' ')}</dd>
+      <dt>대표전화</dt><dd>{row.phone ? <a href={'tel:' + row.phone}>{row.phone}</a> : '확인 필요'}</dd>
+      <dt>이메일</dt><dd>{row.email || '확인 필요'}</dd></dl>
+    <h4>조사 근거</h4><p>{row.evidence}</p>
+    <a href={safeUrl(row.source_url)} target="_blank" rel="noreferrer">출처 확인 ↗ · {row.verified_on}</a>
+    <label htmlFor="record-memo">영업 메모</label>
+    <textarea id="record-memo" maxLength={2000} value={draft ?? savedNote} onChange={(event) => setDraft(event.target.value)} placeholder="통화 내용이나 다음 연락 사항" />
+    <div><button className="outline" onClick={onDetails}>상세 보기</button><button className="primary" disabled={disabled} onClick={() => onSave(draft ?? savedNote)}>메모 저장</button></div>
+  </aside>;
+}
+
 export default function Workspace() {
   const [tab, setTab] = useState('search');
   const [query, setQuery] = useState('');
@@ -30,6 +45,7 @@ export default function Workspace() {
   const [searched, setSearched] = useState(null);
   const [saved, setSaved] = useState({});
   const [recent, setRecent] = useState([]);
+  const [activeId, setActiveId] = useState(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState([]);
   const [filter, setFilter] = useState(false);
@@ -181,6 +197,7 @@ export default function Workspace() {
 
   const list = tab === 'saved' ? Object.values(saved).map((entry) => entry.company) : results ?? [];
   const visible = filter ? list.filter((row) => row.direct_delivery) : list;
+  const activeRow = visible.find((row) => row.id === activeId) ?? visible[0];
   const chosen = visible.filter((row) => selected.includes(row.id));
   const isDisabled = !initialized || writing;
 
@@ -258,24 +275,22 @@ export default function Workspace() {
               {chosen.length > 0 && <button className="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</button>}
             </div>
             {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p><button className="outline" onClick={() => { if (filter) {setFilter(false); return;} changeTab('search'); setShowConditions(true); document.getElementById('query')?.focus(); window.scrollTo(0,0); }}>{filter ? '배송 필터 해제' : tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</button></div>}
-            <div className="lead-list">{visible.map((row) => <article className="account-row" key={row.id}>
-              {selecting && <input type="checkbox" aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onChange={(event) => setSelected(event.target.checked ? [...selected, row.id] : selected.filter((id) => id !== row.id))} />}
-              <div className="account-body">
-                <button className="account-open" onClick={() => openDetail(row)}>
-                  <strong>{row.name}</strong>
-                  <span>{[row.region, row.city, row.industry].filter(Boolean).join(' · ')}</span>
-                </button>
-                <p>{row.evidence}</p>
-                <div className="account-links">
-                  {row.direct_delivery && <span>직접 배송 확인</span>}
-                  {row.phone && <a href={'tel:' + row.phone}>{row.phone}</a>}
-                  <a href={safeUrl(row.source_url)} target="_blank" rel="noreferrer">출처 ↗ · {row.verified_on}</a>
-                </div>
-              </div>
-              <button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button>
-            </article>)}</div>
+            {activeRow && <div className="crm-register">
+              <div className="crm-table-wrap"><table className="crm-table"><caption className="sr-only">업체 레코드</caption><thead><tr>
+                {selecting && <th>선택</th>}<th>업체명</th><th>지역</th><th>대표전화</th><th>목록</th>
+              </tr></thead><tbody>{visible.map((row) => <tr key={row.id} data-active={row.id === activeRow.id}>
+                {selecting && <td><input type="checkbox" aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onChange={(event) => setSelected(event.target.checked ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></td>}
+                <td><button className="crm-name" onClick={() => {
+                  setActiveId(row.id);
+                  if (!window.matchMedia('(min-width: 760px)').matches) openDetail(row);
+                }}>{row.name}</button><small>{row.industry}</small></td>
+                <td>{row.city || row.region}</td><td>{row.phone || '확인 필요'}</td><td><button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button></td>
+              </tr>)}</tbody></table></div>
+              <RecordPanel key={activeRow.id} row={activeRow} savedNote={saved[activeRow.id]?.note ?? ''} disabled={isDisabled}
+                onDetails={() => openDetail(activeRow)} onSave={(memo) => persist([activeRow], 'note', memo)} />
+            </div>}
           </section>}
-          {!landing && <footer><Icon name="globe" size={15} /> 현재 등록된 공개 출처 기반의 업체를 검색합니다.</footer>}
+
         </div>
       </main>
       <dialog ref={dialog} onClick={(event) => { if (event.target === dialog.current) dialog.current.close(); }} onClose={() => { setDetail(null); setMessage(''); }} aria-labelledby="detail-title">
