@@ -217,3 +217,41 @@ dialog[open]:has(.detail){animation:drawer-in 220ms var(--search-ease)}
 .lead-foot{margin-top:auto;border-top:1px solid #e8eaee;padding-top:12px;justify-content:space-between;flex-wrap:wrap}.lead-foot a{color:#46566d}
 .detail dl{background:#f3f5f8;border-radius:12px;padding:16px;row-gap:12px}.detail h3{margin:24px 0 6px}.detail textarea{background:#f8f9fb}
 @media(max-width:520px){.option-browser{margin-inline:7px}.option-list section{grid-template-columns:1fr;gap:2px}.lead{padding:16px}.results .toolbar{row-gap:10px}}
+
+/* Workspace controls, list rows and sheets share a single action hierarchy. */
+.shell:not(.landing) .content{max-width:960px}
+.results{background:white;border-radius:20px;padding:clamp(16px,3vw,32px);border:1px solid #e7e9ed}
+.results .section-heading h2 span{background:transparent;padding:0;color:#687588}
+.toolbar{border-block:1px solid #edf0f3;padding:8px 0;margin:12px 0 0}
+.toolbar label{min-height:38px;padding:0 8px}
+.lead-list{display:block}
+.lead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px;align-items:center;border:0;border-radius:0;padding:22px 4px}
+.lead+.lead{border-top:1px solid #edf0f3}
+.lead-head{grid-column:1/-1}
+.lead-head .outline{min-height:36px}
+.lead-name{justify-self:start;margin:0;font-size:21px;min-height:40px}
+.lead-tags{justify-self:end}
+.lead>p{grid-column:1/-1;margin:0;max-width:74ch;color:#4d5868}
+.lead-foot{grid-column:1/-1;border:0;padding-top:6px;justify-content:flex-start;gap:18px}
+.lead-foot a{padding:6px 0}
+.option-tabs{padding:4px;background:#eff1f5;border-radius:13px}
+.option-tabs button{background:transparent;border:0}
+.option-tabs button[aria-pressed=true]{background:white;box-shadow:0 2px 6px #20293212}
+.option-search{background:#f6f7fa;border:0;border-radius:9px;padding:12px}
+.option-list button{min-height:38px;border-color:transparent;background:#f4f5f8}
+.option-list button[aria-pressed=true]{background:#29364c;color:white}
+.option-actions{display:grid;grid-template-columns:1fr;gap:10px}
+.option-actions .delivery{min-height:38px}
+.option-actions .primary{width:100%;min-height:46px}
+.empty{border:0;min-height:215px;align-content:center}
+.detail h2{letter-spacing:-.04em}.detail dl{background:white;border-block:1px solid #e7e9ed;border-radius:0;padding:16px 0}
+.detail dt{color:#667385;font-weight:500}.detail dd{text-align:right}
+.detail .primary{width:100%;min-height:46px}
+@media(max-width:620px){
+  .shell:not(.landing) .content{padding-inline:12px}
+  .results{border-radius:16px}
+  .lead-tags{justify-self:start;grid-column:1/-1}
+  dialog:has(.detail){margin:auto 0 0;width:100%;height:auto;max-height:90dvh;border:0;border-radius:22px 22px 0 0}
+  dialog[open]:has(.detail){animation:sheet-in 210ms var(--search-ease)}
+}
+@media(prefers-reduced-motion:reduce){dialog[open]:has(.detail){animation:none}}

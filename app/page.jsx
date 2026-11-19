@@ -113,6 +113,7 @@ export default function Workspace() {
         }
       }
       setResults(findCompanies(rows, industry, region, delivery));
+      if (!query.trim()) setQuery([region, industry, delivery && "직접 배송"].filter(Boolean).join(" "));
       const conditions = { query, industry, region, delivery };
       setSearched(conditions);
       const next = [conditions, ...recent.filter((item) => item.industry !== industry || item.region !== region || item.delivery !== delivery)].slice(0, 5);
@@ -217,7 +218,7 @@ export default function Workspace() {
               <div className="search-line">
                 <Icon name="search" size={22} />
                 <label className="sr-only" htmlFor="query">검색 조건</label>
-                <input id="query" value={query} readOnly={busy} maxLength={160} onChange={(event) => applyQuery(event.target.value)} placeholder="찾고 싶은 업체를 입력하세요" />
+                <input id="query" type="search" value={query} readOnly={busy} maxLength={160} onChange={(event) => applyQuery(event.target.value)} placeholder="찾고 싶은 업체를 입력하세요" />
                 <button type="button" className="condition-toggle" disabled={busy} aria-label="검색 필터" aria-expanded={showConditions} aria-controls="search-conditions" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={18} /></button>
                 <button type="submit" className="search-submit" aria-label="업체 찾기" disabled={busy}><Icon name="arrow" size={21} /></button>
               </div>
@@ -227,13 +228,13 @@ export default function Workspace() {
                     업종: { groups: industryGroups, value: industry, change: setIndustry },
                     지역: { groups: { 광역: regions.slice(0, 3), 경기권: regions.slice(3) }, value: region, change: setRegion }
                   }} />
-                  <div className="search-controls option-actions">
-                    <button className="primary" disabled={busy}>이 조건으로 검색 <Icon name="arrow" size={15} /></button>
-                    <label className="plain delivery"><input type="checkbox" checked={delivery} onChange={(event) => setDelivery(event.target.checked)} /> 직접 배송</label>
-                  </div>
                   <div className="suggestions"><span>추천 검색</span>{suggestions.map((value) => <button type="button" key={value} onClick={() => applyQuery(value)}>{value}</button>)}</div>
                   {recent.length > 0 && <div className="suggestions"><span>최근 검색</span>{recent.map((item) => <button type="button" key={JSON.stringify(item)} onClick={() => { setQuery(item.query); setIndustry(item.industry); setRegion(item.region); setDelivery(item.delivery); }}>{item.region} · {item.industry}{item.delivery && ' · 직접 배송'}</button>)}</div>}
                   {landing && <button type="button" className="saved-shortcut" onClick={() => changeTab('saved')}><Icon name="saved" size={15} /> 저장 목록</button>}
+                  <div className="search-controls option-actions">
+                    <button className="primary" disabled={busy || !industry || !region}>이 조건으로 검색 <Icon name="arrow" size={15} /></button>
+                    <label className="plain delivery"><input type="checkbox" checked={delivery} onChange={(event) => setDelivery(event.target.checked)} /> 직접 배송</label>
+                  </div>
                 </div>
               </div>
             </form>
@@ -250,7 +251,7 @@ export default function Workspace() {
               <label><input type="checkbox" checked={filter} onChange={(event) => { setFilter(event.target.checked); setSelected([]); }} /> 직접 배송 확인</label>
               {chosen.length > 0 && <button className="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</button>}
             </div>
-            {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p></div>}
+            {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p><button className="outline" onClick={() => { if (filter) {setFilter(false); return;} changeTab('search'); setShowConditions(true); document.getElementById('query')?.focus(); window.scrollTo(0,0); }}>{filter ? '배송 필터 해제' : tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</button></div>}
             <div className="lead-list">{visible.map((row) => <article className="lead" key={row.id}>
               <div className="lead-head"><input type="checkbox" aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onChange={(event) => setSelected(event.target.checked ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /><span>{row.region} {row.city}</span><button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button></div>
               <button className="lead-name" onClick={() => openDetail(row)}>{row.name}<Icon name="arrow" size={19} /></button>
@@ -262,7 +263,7 @@ export default function Workspace() {
           {!landing && <footer><Icon name="globe" size={15} /> 현재 등록된 공개 출처 기반의 업체를 검색합니다.</footer>}
         </div>
       </main>
-      <dialog ref={dialog} onClose={() => { setDetail(null); setMessage(''); }} aria-labelledby="detail-title">
+      <dialog ref={dialog} onClick={(event) => { if (event.target === dialog.current) dialog.current.close(); }} onClose={() => { setDetail(null); setMessage(''); }} aria-labelledby="detail-title">
         {detail && <div className="detail">
           <div className="section-heading"><h2 id="detail-title">{detail.name}</h2><button className="outline" aria-label="상세 닫기" onClick={() => dialog.current.close()}><Icon name="close" /></button></div>
           <p className="metadata">{detail.region} {detail.city} · {detail.industry}</p>
