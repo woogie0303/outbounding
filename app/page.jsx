@@ -13,7 +13,7 @@ const recentKey = 'outbounding.recent';
 const read = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
 };
-const symbols = { search: 'M21 21l-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z', saved:'M6 4h12v17l-6-4-6 4z', clock:'M12 8v5l3 2m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', arrow:'M4 12h15m-6-6 6 6-6 6', globe:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z M2 12h20M12 2c-5 5-5 15 0 20m0-20c5 5 5 15 0 20', download:'M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5', building:'M4 21h16M7 21V4h10v17M10 8h1m2 0h1m-4 4h1m2 0h1m-4 4h1m2 0h1', pin:'M19 9c0 5-7 11-7 11S5 14 5 9a7 7 0 1 1 14 0Zm-7-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z', close:'m6 6 12 12M18 6 6 18' };
+const symbols = { sliders: 'M4 7h16M4 17h16M9 4v6m6 4v6', search: 'M21 21l-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z', saved:'M6 4h12v17l-6-4-6 4z', clock:'M12 8v5l3 2m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', arrow:'M4 12h15m-6-6 6 6-6 6', globe:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z M2 12h20M12 2c-5 5-5 15 0 20m0-20c5 5 5 15 0 20', download:'M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5', building:'M4 21h16M7 21V4h10v17M10 8h1m2 0h1m-4 4h1m2 0h1m-4 4h1m2 0h1', pin:'M19 9c0 5-7 11-7 11S5 14 5 9a7 7 0 1 1 14 0Zm-7-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z', close:'m6 6 12 12M18 6 6 18' };
 function Icon({ name, size = 18 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={symbols[name]} /></svg>;
 }
@@ -30,6 +30,7 @@ export default function Workspace() {
   const [recent, setRecent] = useState([]);
   const [selected, setSelected] = useState([]);
   const [filter, setFilter] = useState(false);
+  const [showConditions, setShowConditions] = useState(false);
   const [detail, setDetail] = useState(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -86,8 +87,17 @@ export default function Workspace() {
 
   async function search(event) {
     event.preventDefault();
-    if (!industry || !region || busy) return;
+    if (busy) return;
+    if (!industry || !region) {
+      setShowConditions(true);
+      setMessage('업종과 지역을 입력하거나 선택해 주세요.');
+      return;
+    }
     setBusy(true);
+    setShowConditions(false);
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? Promise.resolve()
+      : new Promise((resolve) => setTimeout(resolve, 620));
     setMessage('');
     setSelected([]);
     setFilter(false);
@@ -102,6 +112,7 @@ export default function Workspace() {
           if (data.length < 500) break;
         }
       }
+      await motion;
       setResults(findCompanies(rows, industry, region, delivery));
       const conditions = { query, industry, region, delivery };
       setSearched(conditions);
@@ -115,6 +126,8 @@ export default function Workspace() {
 
   function changeTab(value) {
     setTab(value);
+    setShowConditions(false);
+    setMessage('');
     setSelected([]);
     setFilter(false);
   }
@@ -185,40 +198,50 @@ export default function Workspace() {
     setNote(saved[row.id]?.note ?? '');
   }
 
+  const landing = tab === 'search' && results === null;
   return (
-    <div className="shell">
-      <aside className="sidebar">
-        <button className="brand" onClick={() => changeTab('search')}><span className="mark">↗</span> 아웃바운딩</button>
-        <div className="nav-label">워크스페이스</div>
+    <div className={landing ? 'shell landing' : 'shell'}>
+      {!landing && <header className="topbar">
+        <button className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); setDelivery(false); changeTab('search'); }}>아웃바운딩</button>
         <nav aria-label="워크스페이스">
-          <button className={tab === 'search' ? 'active' : ''} onClick={() => changeTab('search')}><Icon name="search" /> 업체 발굴</button>
-          <button className={tab === 'saved' ? 'active' : ''} onClick={() => changeTab('saved')}><Icon name="saved" /> 저장 목록 <small>{Object.keys(saved).length}</small></button>
+          <button className={tab === 'search' ? 'active' : ''} onClick={() => changeTab('search')}><Icon name="search" size={16} /> 업체 발굴</button>
+          <button className={tab === 'saved' ? 'active' : ''} onClick={() => changeTab('saved')}><Icon name="saved" size={16} /> 저장 목록 <small>{Object.keys(saved).length}</small></button>
         </nav>
-        <div className="side-footer"><span className="status-dot" />{db ? 'Supabase 저장' : '이 브라우저에 저장'}</div>
-      </aside>
+      </header>}
       <main>
-        <header className="topbar"><span>워크스페이스 <b>/</b> {tab === 'search' ? '업체 발굴' : '저장 목록'}</span><span className="top-status"><span className="status-dot" /> 무료 워크스페이스</span></header>
         <div className="content">
-          {tab === 'search' && <section className={results === null ? 'hero' : 'hero compact'}>
-            <div className="hero-icon"><Icon name="search" size={27} /></div>
-            <h1>어떤 고객을 찾고 계신가요?</h1>
-            <p className="subtitle">업종과 지역을 입력하고 출처가 확인된 업체를 찾아보세요.</p>
+          {tab === 'search' && <section className="search-stage" aria-label="업체 발굴">
+            <h1 className="sr-only">아웃바운딩 업체 검색</h1>
             <form className="search-box" onSubmit={search}>
-              <label className="sr-only" htmlFor="query">검색 조건</label>
-              <input id="query" value={query} maxLength={160} onChange={(event) => applyQuery(event.target.value)} placeholder="경기도에서 직접 배송하는 식자재 유통사 찾아줘" />
-              <div className="search-controls">
-                <label><Icon name="building" /><select aria-label="업종" value={industry} onChange={(event) => setIndustry(event.target.value)} required><option value="">업종 선택</option>{industries.map((name) => <option key={name}>{name}</option>)}</select></label>
-                <label><Icon name="pin" /><select aria-label="지역" value={region} onChange={(event) => setRegion(event.target.value)} required><option value="">지역 선택</option>{regions.map((name) => <option key={name}>{name}</option>)}</select></label>
-                <label className="plain delivery"><input type="checkbox" checked={delivery} onChange={(event) => setDelivery(event.target.checked)} /> 직접 배송</label>
-                <button className="primary" disabled={busy}>{busy ? '검색 중…' : '업체 찾기'} <Icon name="arrow" size={17} /></button>
+              <div className="search-line">
+                <Icon name="search" size={22} />
+                <label className="sr-only" htmlFor="query">검색 조건</label>
+                <input id="query" value={query} readOnly={busy} maxLength={160} onChange={(event) => applyQuery(event.target.value)} placeholder="어떤 업체를 찾으세요?" />
+                <button type="button" className="condition-toggle" disabled={busy} aria-label="검색 필터" aria-expanded={showConditions} aria-controls="search-conditions" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={18} /></button>
+                <button type="submit" className="search-submit" aria-label="업체 찾기" disabled={busy}><Icon name="arrow" size={21} /></button>
+              </div>
+              <div id="search-conditions" className="condition-reveal" data-open={showConditions} inert={!showConditions}>
+                <div className="condition-inner">
+                  <div className="search-controls">
+                    <label><Icon name="building" /><select aria-label="업종" value={industry} onChange={(event) => setIndustry(event.target.value)}><option value="">업종 선택</option>{industries.map((name) => <option key={name}>{name}</option>)}</select></label>
+                    <label><Icon name="pin" /><select aria-label="지역" value={region} onChange={(event) => setRegion(event.target.value)}><option value="">지역 선택</option>{regions.map((name) => <option key={name}>{name}</option>)}</select></label>
+                    <label className="plain delivery"><input type="checkbox" checked={delivery} onChange={(event) => setDelivery(event.target.checked)} /> 직접 배송</label>
+                  </div>
+                  <div className="suggestions"><span>추천 검색</span>{suggestions.map((value) => <button type="button" key={value} onClick={() => applyQuery(value)}>{value}</button>)}</div>
+                  {recent.length > 0 && <div className="suggestions"><span>최근 검색</span>{recent.map((item) => <button type="button" key={JSON.stringify(item)} onClick={() => { setQuery(item.query); setIndustry(item.industry); setRegion(item.region); setDelivery(item.delivery); }}>{item.region} · {item.industry}{item.delivery && ' · 직접 배송'}</button>)}</div>}
+                  {landing && <button type="button" className="saved-shortcut" onClick={() => changeTab('saved')}><Icon name="saved" size={15} /> 저장 목록</button>}
+                </div>
               </div>
             </form>
-            <div className="suggestions"><span>추천 검색</span>{suggestions.map((value) => <button key={value} onClick={() => applyQuery(value)}>{value} <span>↗</span></button>)}</div>
+            {busy && <div className="search-progress" role="status">
+              <div className="scan-field" aria-hidden="true"><i /><i /><i /><i /><i /><i /></div>
+              <div className="progress-copy"><strong>조건에 맞는 업체를 찾고 있어요</strong>
+                <div className="progress-conditions">{[region, industry, delivery && '직접 배송'].filter(Boolean).map((value) => <span key={value}>{value}</span>)}</div>
+              </div>
+            </div>}
           </section>}
-          {tab === 'search' && results === null && recent.length > 0 && <section className="recent"><h2><Icon name="clock" /> 최근 검색</h2>{recent.map((item) => <button key={JSON.stringify(item)} onClick={() => { setQuery(item.query); setIndustry(item.industry); setRegion(item.region); setDelivery(item.delivery); }}>{item.region} · {item.industry}{item.delivery && ' · 직접 배송'} <Icon name="arrow" size={16} /></button>)}</section>}
           {message && !detail && <p className="notice" role="status">{message}</p>}
-          {busy && <p className="notice" role="status">업체 디렉터리에서 조건에 맞는 정보를 확인하고 있습니다.</p>}
-          {(tab === 'saved' || results !== null) && <section className="results">
+          {(tab === 'saved' || (results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
             <div className="section-heading">
               <div><h2>{tab === 'saved' ? '저장 목록' : '검색 결과'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}{searched.delivery && ' · 직접 배송'}</p>}</div>
               <button className="outline" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={16} /> CSV 내보내기</button>
@@ -236,7 +259,7 @@ export default function Workspace() {
               <button className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</button>
             </article>)}
           </section>}
-          <footer><Icon name="globe" size={15} /> 현재 등록된 공개 출처 기반의 업체를 검색합니다.</footer>
+          {!landing && <footer><Icon name="globe" size={15} /> 현재 등록된 공개 출처 기반의 업체를 검색합니다.</footer>}
         </div>
       </main>
       <dialog ref={dialog} onClose={() => { setDetail(null); setMessage(''); }} aria-labelledby="detail-title">
