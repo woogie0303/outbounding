@@ -18,22 +18,34 @@ export default function DottedField() {
         ctx.clearRect(0, 0, width, height);
         const phase = preference.matches ? 0 : time / 6500;
         if (touch && time - touch.start > 1400) touch = null;
-        for (let row = -4; row < height / 30 + 5; row++) {
-          ctx.beginPath();
-          for (let x = -3; x <= width + 5; x += 9) {
-            const angle = x / Math.max(320, width) * 4 + row * .07;
-            let y = row * 30 + Math.sin(angle + .14 * Math.sin(phase)) * 48 + Math.cos(x / 220 + phase) * 3;
+        // Match the original lower-right elliptical gradient and its 35px repeats.
+        const fieldWidth = width * .99;
+        const fieldHeight = height * 1.15;
+        const angle = -16 * Math.PI / 180;
+        const cos = Math.cos(angle), sin = Math.sin(angle);
+        ctx.fillStyle = 'rgba(117,128,150,.36)';
+        ctx.beginPath();
+        for (let radius = 22; radius < fieldWidth * 1.2; radius += 35) {
+          const ry = radius * fieldHeight / (.68 * fieldWidth);
+          const step = 7 / Math.max(radius, ry);
+          for (let t = Math.PI; t <= Math.PI * 2; t += step) {
+            const u = fieldWidth * .18 + radius * Math.cos(t);
+            const v = fieldHeight * .5 + ry * Math.sin(t);
+            if (Math.abs(u) > fieldWidth / 2 || Math.abs(v) > fieldHeight / 2) continue;
+            const x = width * .705 + u * cos - v * sin;
+            let y = height * 1.125 + u * sin + v * cos;
+            if (x < -2 || x > width + 2 || y < -10 || y > height + 10) continue;
+            y += 1.8 * Math.sin(phase + t * 3 + radius / 160);
             if (touch) {
               const distance = Math.hypot(x - touch.x, y - touch.y);
               const age = (time - touch.start) / 1400;
-              y += Math.exp(-distance * distance / 14000) * Math.sin(age * 6 - distance / 55) * (1 - age) * 9;
+              y += Math.exp(-distance * distance / 10000) * Math.sin(age * 6) * (1 - age) * 8;
             }
-            ctx.moveTo(x + 1, y);
-            ctx.arc(x, y, 1, 0, Math.PI * 2);
+            ctx.moveTo(x + .95, y);
+            ctx.arc(x, y, .95, 0, Math.PI * 2);
           }
-          ctx.fillStyle = 'rgba(86,101,128,.26)';
-          ctx.fill();
         }
+        ctx.fill();
       }
       if (!preference.matches) frame = requestAnimationFrame(draw);
     }
