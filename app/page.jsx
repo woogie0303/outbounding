@@ -13,6 +13,7 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption } from '../components/ui/table';
 import Picker from './Picker';
+import AccountBoard from './AccountBoard';
 import companies from './companies.json';
 import { findCompanies, infer, industries, industryGroups, regions, safeUrl, toCsv } from './data.mjs';
 
@@ -29,21 +30,6 @@ function Icon({ name, size = 18 }) {
 }
 
 export default function Workspace() {
-  const stages = ['미접촉', '접촉 중', '상담 진행', '제안·협의', '계약 완료', '종료'];
-  const [draggedId, setDraggedId] = useState(null);
-  const [dropStage, setDropStage] = useState(null);
-  const stageOf = (id) => ({'통화 완료':'접촉 중','후속 연락':'접촉 중','관심 없음':'종료'}[stagesByCompany[id]] || (stages.includes(stagesByCompany[id]) ? stagesByCompany[id] : stages[0]));
-  function moveAccount(id, stage) {
-    if (!id || !saved[id] || !stages.includes(stage)) return;
-    const next = {...stagesByCompany, [id]:stage};
-    try {
-      localStorage.setItem('outbounding.stages', JSON.stringify(next));
-      setStagesByCompany(next);
-      setMessage(saved[id].company.name + ' · ' + stage + '(으)로 이동했습니다.');
-    } catch {setMessage('상태를 저장하지 못했습니다. 다시 시도해 주세요.');}
-    setDraggedId(null);setDropStage(null);
-  }
-  const [stagesByCompany, setStagesByCompany] = useState({});
   const [tab, setTab] = useState('search');
   const [query, setQuery] = useState('');
   const [revenueMin, setRevenueMin] = useState('');
@@ -68,6 +54,21 @@ export default function Workspace() {
   const [initialized, setInitialized] = useState(false);
   const detailTrigger = useRef(null);
   const writeLock = useRef(false);
+  const pendingNote = useRef(null);
+  const noteTimer = useRef(null);
+  function flushNote() {
+    clearTimeout(noteTimer.current);
+    const pending = pendingNote.current;
+    if (!pending || writeLock.current) return;
+    pendingNote.current = null;
+    void persist([pending.company], 'note', pending.value);
+  }
+  function editNote(value) {
+    setNote(value);
+    pendingNote.current = {company:detail,value};
+    clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(flushNote,600);
+  }
 
   useEffect(() => {
     let active = true;
@@ -88,7 +89,6 @@ export default function Workspace() {
         if (active) setInitialized(true);
       }
     }
-    setStagesByCompany(read('outbounding.stages', {}));
     start();
     return () => { active = false; };
   }, []);
@@ -194,12 +194,13 @@ export default function Workspace() {
         localStorage.setItem(savedKey, JSON.stringify(next));
         setSaved(next);
       }
-      setMessage(mode === 'note' ? '메모를 저장했습니다.' : mode === 'remove' ? '저장 목록에서 삭제했습니다.' : `${rows.length}개 업체를 저장했습니다.`);
+
     } catch {
       setMessage('변경을 완료하지 못했습니다. 연결 상태를 확인하고 다시 시도해 주세요.');
     } finally {
       setWriting(false);
       writeLock.current = false;
+      if (pendingNote.current) flushNote();
     }
   }
 
@@ -286,7 +287,7 @@ export default function Workspace() {
                   <p className="range-hint">매출액·인원수 조건을 지정하면 해당 정보가 확인된 업체만 표시됩니다.</p>
                   <Button type="submit" disabled={busy || !industry || !region || (revenueMin && revenueMax && Number(revenueMin) > Number(revenueMax)) || (peopleMin && peopleMax && Number(peopleMin) > Number(peopleMax))}>적용</Button>
                 </form>}
-                {chosen.length > 0 && <Button variant="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '거래처 추가'}</Button>}
+
                 {tab === 'search' && <Button variant="ghost" size="icon" aria-label="검색 필터" title="검색 필터" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={16}/></Button>}
                 <Button variant="ghost" size="icon" aria-label={selecting ? '선택 종료' : '목록 선택'} title="목록 선택" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => {setSelecting(!selecting);setSelected([]);}}><CheckboxIcon /></Button>
                 <Button variant="ghost" size="icon" aria-label="CSV 다운로드" title="CSV 다운로드" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={17}/></Button>
@@ -298,26 +299,8 @@ export default function Workspace() {
               <p>{tab === 'saved' ? '통화할 업체를 저장하면 여기에 모입니다.' : '다른 업종이나 인근 지역으로 검색해 보세요.'}</p>
               <Button variant="outline" onClick={() => { changeTab('search'); setShowConditions(true); window.scrollTo(0,0); }}>{tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</Button>
             </div>}
-            {tab === 'saved' && <div className="account-board">{stages.map((stage) => {
-              const cards = visible.filter((row) => stageOf(row.id) === stage);
-              return <section className="board-column" key={stage} data-stage={stage} data-over={dropStage === stage} onDragOver={(event) => {event.preventDefault();setDropStage(stage);}} onDrop={(event) => {event.preventDefault();moveAccount(draggedId, stage);}}><h3><span className="stage-dot"/>{stage}<span className="stage-count">{cards.length}</span></h3>
-                <div className="board-cards">{cards.length === 0 && <p className="board-drop-hint">거래처를 여기로 이동</p>}{cards.map((row) => <article className="account-card" key={row.id} data-dragging={draggedId === row.id} draggable onDragStart={(event) => {event.dataTransfer.setData('text/plain', row.id);event.dataTransfer.effectAllowed='move';setDraggedId(row.id);}} onDragEnd={() => {setDraggedId(null);setDropStage(null);}}>
-                  <button type="button" className="card-drag-handle" aria-label={row.name + ' 단계 이동. 좌우 방향키로 이동'} title="드래그하여 이동 · 방향키로 단계 변경" onKeyDown={(event) => {
-                    const delta = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-                    if (delta) {event.preventDefault();moveAccount(row.id, stages[Math.max(0, Math.min(stages.length-1, stages.indexOf(stage)+delta))]);}
-                  }} onPointerDown={(event) => {if(event.pointerType === 'mouse') return;event.currentTarget.setPointerCapture(event.pointerId);setDraggedId(row.id);}}
-                  onPointerMove={(event) => {if(event.pointerType === 'mouse' || !draggedId) return;setDropStage(document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-stage]')?.dataset.stage || null);}}
-                  onPointerUp={(event) => {if(event.pointerType === 'mouse') return;const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-stage]')?.dataset.stage;if(target) moveAccount(row.id,target);else {setDraggedId(null);setDropStage(null);}}}
-                  onPointerCancel={() => {setDraggedId(null);setDropStage(null);}}>⠿</button>
-                  <Button variant="ghost" className="board-company" onClick={() => openDetail(row)}><span className="account-glyph">{row.name.slice(0,1)}</span>{row.name}</Button>
-                  <Badge variant="secondary">{row.industry}</Badge>
-                  <p><Icon name="pin" size={13}/>{row.city || row.region}</p>
-                  <p><Icon name="building" size={13}/>{row.phone || '대표전화 미확인'}</p>
-                  {saved[row.id]?.note && <p className="board-note">{saved[row.id].note}</p>}
-
-                </article>)}</div>
-              </section>;
-            })}</div>}
+            {tab === 'saved' && <AccountBoard rows={visible} saved={saved} open={openDetail} onError={setMessage}/>}
+            {tab === 'search' && chosen.length > 0 && <div className="selection-float"><Button disabled={isDisabled} onClick={() => persist(chosen, 'add')}>{chosen.length}개 거래처 추가</Button></div>}
             {tab === 'search' && visible.length > 0 && <div className="crm-register">
               <div className="crm-table-wrap"><Table className="crm-table"><TableCaption className="sr-only">업체 레코드</TableCaption><TableHeader><TableRow>
                 {selecting && <TableHead className="selection-cell"><Checkbox aria-label="전체 업체 선택" checked={chosen.length === visible.length ? true : chosen.length > 0 ? 'indeterminate' : false} onCheckedChange={(checked) => setSelected(checked === true ? visible.map((row) => row.id) : [])}/></TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead>인원수</TableHead><TableHead>매출액</TableHead>
@@ -332,7 +315,7 @@ export default function Workspace() {
 
         </div>
       </main>
-      <Dialog open={Boolean(detail)} onOpenChange={(open) => { if (!open) { setDetail(null); setMessage(''); } }}>
+      <Dialog open={Boolean(detail)} onOpenChange={(open) => { if (!open) { flushNote(); setDetail(null); setMessage(''); } }}>
         {detail && <DialogContent className="detail" onCloseAutoFocus={(event) => { event.preventDefault(); detailTrigger.current?.focus(); }}>
           <div className="record-identity"><span aria-hidden="true" className="record-initial">{detail.name.slice(0,1)}</span><DialogTitle>{detail.name}</DialogTitle></div>
           <DialogDescription>{detail.region} {detail.city} · {detail.industry}</DialogDescription>
@@ -341,8 +324,8 @@ export default function Workspace() {
             <TabsContent value="overview">
           <section className="detail-section"><h3>기본 정보</h3><dl><dt>주소</dt><dd>{detail.address || '확인 필요'}</dd><dt>대표전화</dt><dd>{detail.phone || '확인 필요'}</dd><dt>사업용 이메일</dt><dd>{detail.email || '확인 필요'}</dd><dt>홈페이지</dt><dd>{safeUrl(detail.website) ? <a href={safeUrl(detail.website)} target="_blank" rel="noreferrer">홈페이지 열기 ↗</a> : '확인 필요'}</dd></dl></section>
           <section className="detail-section"><h3>조사 근거</h3><p>{detail.evidence}</p><p><a href={safeUrl(detail.source_url)} target="_blank" rel="noreferrer">출처 열기 ↗</a> · {detail.verified_on} 확인</p>
-          </section></TabsContent><TabsContent value="note"><section className="detail-section"><Label htmlFor="note"><strong>영업 메모</strong></Label><Textarea id="note" value={note} maxLength={2000} placeholder="다음 연락에서 확인할 내용을 적어보세요." onChange={(event) => setNote(event.target.value)} /></section>
-          <Button className="primary" disabled={isDisabled} onClick={() => persist([detail], 'note')}>{saved[detail.id] ? '메모 저장' : '업체와 메모 저장'}</Button></TabsContent></Tabs>
+          </section></TabsContent><TabsContent value="note"><section className="detail-section"><Label htmlFor="note"><strong>영업 메모</strong></Label><Textarea id="note" value={note} maxLength={2000} placeholder="다음 연락에서 확인할 내용을 적어보세요." onBlur={flushNote} onChange={(event) => editNote(event.target.value)} /></section>
+</TabsContent></Tabs>
           {message && <p className="notice" role="status">{message}</p>}
         </DialogContent>}
       </Dialog>

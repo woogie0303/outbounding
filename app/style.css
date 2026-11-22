@@ -348,3 +348,9 @@
 .board-column:nth-child(5) .stage-dot{background:#e6f2e9;border-color:#71a67f;border-style:solid}
 .board-column:nth-child(6) .stage-dot{background:#eee;border-color:#aaa;border-style:solid}
 @media(prefers-reduced-motion:reduce){.account-card,.board-column{transition:none}}
+.results{position:relative}
+.selection-float{position:absolute;left:8px;top:108px;z-index:20;padding:16px 22px 24px;background:linear-gradient(135deg,#f0eef9ed,#e9f0f8e6);border:1px solid #ffffff;border-radius:12px;box-shadow:0 8px 28px #22222218;backdrop-filter:blur(12px)}
+.selection-float button{height:34px;font-size:12px}
+.board-company{border:0;background:none;text-align:left;font-size:13px;font-weight:500;cursor:pointer}
+.board-industry{font-size:10px;color:#77668b;background:#f3f1f7;padding:3px 6px;border-radius:4px;width:fit-content}
+.card-drag-handle{touch-action:none}
