@@ -208,6 +208,8 @@ export default function Workspace() {
       </aside>
       <header className="workspace-header"><Icon name={tab === 'search' ? 'building' : 'saved'} size={15}/><span>{tab === 'search' ? '업체 검색' : '마이페이지'}</span></header></>}
       <main>
+        {!landing && <div className="page-intro"><div><p className="page-eyebrow">워크스페이스</p><h1>{tab === 'saved' ? '마이페이지' : '업체 검색'}</h1><p>{tab === 'saved' ? '저장한 업체와 영업 메모를 관리하세요.' : '다음 통화로 이어질 업체를 찾아보세요.'}</p></div><Button variant="outline" onClick={() => {setResults(null);setQuery('');setIndustry('');setRegion('');changeTab('search');}}>새 검색 <Icon name="arrow" size={14}/></Button></div>}
+
         <div className="content">
           {tab === 'search' && <section className="search-stage" aria-label="업체 발굴">
             <h1 className="sr-only">아웃바운딩 업체 검색</h1>
