@@ -198,7 +198,7 @@ export default function Workspace() {
   const landing = tab === 'search' && results === null;
   return (
     <div className={landing ? 'shell landing' : 'shell workspace'}>
-      <aside className="workspace-sidebar">
+      {!landing && <><aside className="workspace-sidebar">
         <Button variant="ghost" className="brand" onClick={() => {setResults(null); changeTab('search');}}><span aria-hidden="true" className="route-mark"/> Outbounding</Button>
         <nav aria-label="주 메뉴">
           <span className="nav-section">워크스페이스</span>
@@ -206,7 +206,7 @@ export default function Workspace() {
           <Button variant="ghost" aria-current={tab === 'saved' ? 'page' : undefined} onClick={() => changeTab('saved')}><Icon name="saved" size={15}/> 마이페이지 <span className="sidebar-count">{Object.keys(saved).length}</span></Button>
         </nav>
       </aside>
-      <header className="workspace-header"><Icon name={tab === 'search' ? 'building' : 'saved'} size={15}/><span>{tab === 'search' ? '업체 검색' : '마이페이지'}</span></header>
+      <header className="workspace-header"><Icon name={tab === 'search' ? 'building' : 'saved'} size={15}/><span>{tab === 'search' ? '업체 검색' : '마이페이지'}</span></header></>}
       <main>
         <div className="content">
           {tab === 'search' && <section className="search-stage" aria-label="업체 발굴">

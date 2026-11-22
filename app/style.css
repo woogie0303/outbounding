@@ -192,3 +192,27 @@
 .crm-register,.crm-table-wrap{border-radius:0;border:0}
 .notice{margin:12px 24px}
 @media(max-width:700px){.shell{grid-template-columns:146px minmax(0,1fr)}.workspace-sidebar{padding:6px}.workspace-sidebar .brand{font-size:11px}.search-stage{padding:12px}.section-heading,.toolbar{padding-inline:12px}.workspace-header{padding-inline:12px}}
+
+.landing{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:1fr;min-height:100svh;background:#fafafa}
+.landing main{grid-column:1;grid-row:1;display:grid;align-items:center}
+.landing .search-stage{width:min(100%,670px);margin:0 auto 6vh;padding:20px}
+/* Consistent CRM workspace hierarchy */
+.workspace .content{padding:0}
+.workspace .search-stage{padding:12px 20px;border-bottom:1px solid #ededed}
+.workspace .search-box{padding:0;border:0;box-shadow:none;border-radius:0;max-width:680px;background:transparent}
+.workspace .search-line{min-height:38px;border:1px solid #e5e5e5;border-radius:7px;padding:0 5px 0 10px;background:#fff}
+.workspace .search-line input{font-size:13px;height:36px}
+.workspace .search-submit{width:28px;height:28px;border-radius:5px}
+.workspace .condition-toggle{height:28px;width:28px}
+.workspace .condition-reveal[data-open=true]{margin-top:10px;border:1px solid #e8e8e8;border-radius:7px;background:#fff}
+.workspace .condition-inner{padding:14px}
+.results .section-heading{padding:14px 20px;border-top:0;border-bottom:1px solid #ededed;min-height:60px;align-items:center}
+.results .section-heading h2{font-size:14px;letter-spacing:-.02em;font-weight:600}
+.results .section-heading h2 span{font-size:11px;font-weight:400;margin-left:7px}
+.results .section-heading p{font-size:11px;margin:4px 0 0}
+.results .toolbar{padding:4px 20px;margin:0;min-height:36px;border-top:0;border-bottom:1px solid #ededed}
+.results .empty{min-height:300px;align-content:center;padding:40px 20px;gap:12px}
+.crm-table th:first-child,.crm-table td:first-child{padding-left:20px}
+.workspace-header{height:44px}
+.workspace .search-status{margin:10px 0 0;font-size:12px}
+@media(max-width:600px){.shell.workspace{grid-template-columns:116px minmax(0,1fr)}.workspace-sidebar nav button{font-size:11px;gap:5px}.workspace-sidebar .brand{font-size:10px;padding:0 3px}.workspace-sidebar .route-mark{width:11px}.sidebar-count{display:none}.results .section-heading,.results .toolbar{padding-inline:12px}.workspace .search-stage{padding:10px 12px}}
