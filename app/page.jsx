@@ -211,7 +211,7 @@ export default function Workspace() {
       </>}
       <main>
         <div className="content">
-          {tab === 'search' && (landing || showConditions) && <section className="search-stage" aria-label="업체 발굴">
+          {tab === 'search' && landing && <section className="search-stage" aria-label="업체 발굴">
             <h1 className="sr-only">아웃바운딩 업체 검색</h1>
             <form className="search-box" onSubmit={search}>
               {landing && <div className="composer-brand"><span aria-hidden="true" className="route-mark" />Outbounding</div>}
@@ -245,16 +245,20 @@ export default function Workspace() {
                   <Icon name="search" size={15}/>
                   <Input aria-label={tab === 'saved' ? '저장한 업체 검색' : '업체 검색'} value={tab === 'saved' ? savedQuery : query} onChange={(event) => tab === 'saved' ? setSavedQuery(event.target.value) : applyQuery(event.target.value)} placeholder={tab === 'saved' ? '저장한 업체 검색' : '업체 검색'} />
                 </form>
+                {tab === 'search' && showConditions && <form className="list-filter-dropdown" onSubmit={search}>
+                  <div className="dropdown-heading"><strong>검색 조건</strong><Button type="button" variant="ghost" size="icon" aria-label="검색 조건 닫기" onClick={() => setShowConditions(false)}><Icon name="close" size={14}/></Button></div>
+                  <Picker fields={{
+                    업종: {groups: industryGroups, value: industry, change: setIndustry},
+                    지역: {groups: {광역: regions.slice(0,3), 경기권: regions.slice(3)}, value: region, change: setRegion}
+                  }}/>
+                  <Button type="submit" disabled={busy || !industry || !region}>적용</Button>
+                </form>}
+                {chosen.length > 0 && <Button variant="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</Button>}
                 {tab === 'search' && <Button variant="ghost" size="icon" aria-label="검색 필터" title="검색 필터" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={16}/></Button>}
                 <Button variant="ghost" size="icon" aria-label={selecting ? '선택 종료' : '목록 선택'} title="목록 선택" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => {setSelecting(!selecting);setSelected([]);}}><CheckboxIcon /></Button>
                 <Button variant="ghost" size="icon" aria-label="CSV 다운로드" title="CSV 다운로드" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={17}/></Button>
               </div>
             </div>
-            {selecting && visible.length > 0 && <div className="toolbar">
-
-              {selecting && <Label><Checkbox checked={visible.length > 0 && chosen.length === visible.length} disabled={!visible.length} onCheckedChange={(checked) => setSelected(checked === true ? visible.map((row) => row.id) : [])} /> 전체 선택</Label>}
-              {chosen.length > 0 && <Button variant="outline" className="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</Button>}
-            </div>}
             {visible.length === 0 && <div className="empty">
               <span className="empty-icon"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={20} /></span>
               <strong>{tab === 'saved' ? '아직 저장한 업체가 없어요' : '검색된 업체가 없어요'}</strong>
@@ -263,9 +267,9 @@ export default function Workspace() {
             </div>}
             {visible.length > 0 && <div className="crm-register">
               <div className="crm-table-wrap"><Table className="crm-table"><TableCaption className="sr-only">업체 레코드</TableCaption><TableHeader><TableRow>
-                {selecting && <TableHead>선택</TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead>인원수</TableHead><TableHead>매출액</TableHead>
+                {selecting && <TableHead className="selection-cell"><Checkbox aria-label="전체 업체 선택" checked={chosen.length === visible.length ? true : chosen.length > 0 ? 'indeterminate' : false} onCheckedChange={(checked) => setSelected(checked === true ? visible.map((row) => row.id) : [])}/></TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead>인원수</TableHead><TableHead>매출액</TableHead>
               </TableRow></TableHeader><TableBody>{visible.map((row) => <TableRow key={row.id}>
-                {selecting && <TableCell><Checkbox aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onCheckedChange={(checked) => setSelected(checked === true ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></TableCell>}
+                {selecting && <TableCell className="selection-cell"><Checkbox aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onCheckedChange={(checked) => setSelected(checked === true ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></TableCell>}
                 <TableCell><Button variant="ghost" className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}</Button></TableCell>
                 <TableCell className="industry-col"><Badge variant="secondary" data-tone={Array.from(row.industry).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 6}>{row.industry}</Badge></TableCell><TableCell>{row.city || row.region}</TableCell><TableCell className="phone-col">{row.phone || '확인 필요'}</TableCell><TableCell><span className="metric-value">{row.headcount ?? row.employee_count ?? '미확인'}</span></TableCell><TableCell><span className="metric-value">{row.revenue ?? '미확인'}</span></TableCell>
               </TableRow>)}</TableBody></Table></div>

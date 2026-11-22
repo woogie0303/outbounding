@@ -278,3 +278,21 @@
 .workspace main{grid-row:1;min-height:100svh}
 .workspace .results{min-height:100svh}
 @media(max-width:600px){.workspace{grid-template-rows:auto 1fr}.workspace main{grid-row:2;min-height:calc(100svh - 60px)}}
+
+.list-actions{position:relative}
+.list-filter-dropdown{position:absolute;right:70px;top:calc(100% + 10px);z-index:30;width:380px;max-width:calc(100vw - 40px);padding:14px;background:#fff;border:1px solid #e3e5e9;border-radius:10px;box-shadow:0 12px 36px #17203318;display:grid;gap:12px}
+.dropdown-heading{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.dropdown-heading button{height:24px;width:24px}
+.list-filter-dropdown>.option-browser{min-width:0}
+.list-filter-dropdown>.option-browser .option-tabs{gap:6px}
+.list-filter-dropdown>.option-browser .option-tabs button{flex:1;min-width:0;padding:8px;height:48px}
+.list-filter-dropdown .field-icon{display:none}
+.list-filter-dropdown .field-copy strong{font-size:12px}
+.list-filter-dropdown .option-list{max-height:260px;overflow:auto}
+.list-filter-dropdown>button{justify-self:end;height:30px;font-size:12px;padding:0 16px}
+.workspace .results{overflow:visible}
+.workspace .results .selection-cell{width:40px;padding:0 12px}
+.selection-cell [data-slot=checkbox]{width:15px;height:15px;border-radius:3px}
+.list-actions>button:has(+button){flex-shrink:0}
+.list-actions>button:not([data-size=icon]){width:auto;white-space:nowrap}
+@media(max-width:600px){.list-filter-dropdown{right:0;width:340px}}
