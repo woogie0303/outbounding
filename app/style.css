@@ -167,3 +167,28 @@
 .crm-table [data-tone="5"]{background:#f1ece4;color:#85674b}
 .metric-value{display:inline-block;padding:1px 5px;border:1px solid #eaeaea;border-radius:4px;font-size:11px}
 @media(max-width:600px){.crm-table .industry-col,.crm-table .phone-col{display:table-cell}}
+
+/* Sidebar workspace */
+.shell{display:grid;grid-template-columns:196px minmax(0,1fr);grid-template-rows:44px 1fr;background:#fff;padding:0;align-items:stretch}
+.workspace-sidebar{grid-column:1;grid-row:1 / 3;background:#f7f7f7;border-right:1px solid #eaeaea;padding:8px;min-height:100svh}
+.workspace-sidebar .brand{width:100%;justify-content:flex-start;height:30px;padding:0 7px;font-size:13px;letter-spacing:-.02em}
+.workspace-sidebar nav{display:grid;gap:3px;margin-top:24px}
+.nav-section{font-size:10px;color:#8a8a8a;padding:0 8px 5px}
+.workspace-sidebar nav button{justify-content:flex-start;height:31px;font-size:12px;padding:0 8px;font-weight:400}
+.workspace-sidebar nav button[aria-current=page]{background:#eaeaea}
+.sidebar-count{margin-left:auto;color:#888;font-size:10px}
+.workspace-header{display:flex;gap:8px;align-items:center;padding:0 24px;border-bottom:1px solid #eee;font-size:12px}
+.shell main{grid-column:2;grid-row:2;min-width:0}
+.content{width:100%;max-width:none;padding:0}
+.search-stage{padding:16px 24px}
+.landing .search-stage{width:min(100%,670px);margin:20vh auto 0;padding:20px}
+.landing .content{padding:0}
+.workspace .search-box{max-width:760px;margin:0}
+.results{margin:0}
+.section-heading{padding:12px 24px;margin:0;border-top:1px solid #eee}
+.section-heading h2{font-size:13px}
+.section-heading p{font-size:11px;margin-top:4px}
+.toolbar{padding:4px 24px;border-top:1px solid #eee;border-bottom:1px solid #eee;min-height:36px}
+.crm-register,.crm-table-wrap{border-radius:0;border:0}
+.notice{margin:12px 24px}
+@media(max-width:700px){.shell{grid-template-columns:146px minmax(0,1fr)}.workspace-sidebar{padding:6px}.workspace-sidebar .brand{font-size:11px}.search-stage{padding:12px}.section-heading,.toolbar{padding-inline:12px}.workspace-header{padding-inline:12px}}

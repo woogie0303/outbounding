@@ -198,14 +198,15 @@ export default function Workspace() {
   const landing = tab === 'search' && results === null;
   return (
     <div className={landing ? 'shell landing' : 'shell workspace'}>
-      {!landing && <header className="topbar">
-        <Button variant="ghost" className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); changeTab('search'); }}><span aria-hidden="true" className="route-mark" /> 아웃바운딩</Button>
-        <Tabs value={tab} onValueChange={changeTab}><TabsList aria-label="워크스페이스">
-          <TabsTrigger value="search"><Icon name="search" size={15} /> 업체 발굴</TabsTrigger>
-          <TabsTrigger value="saved"><Icon name="saved" size={15} /> 마이페이지</TabsTrigger>
-        </TabsList></Tabs>
-      </header>}
-      {landing && <Button className="my-page-link" variant="ghost" onClick={() => changeTab('saved')}>마이페이지</Button>}
+      <aside className="workspace-sidebar">
+        <Button variant="ghost" className="brand" onClick={() => {setResults(null); changeTab('search');}}><span aria-hidden="true" className="route-mark"/> Outbounding</Button>
+        <nav aria-label="주 메뉴">
+          <span className="nav-section">워크스페이스</span>
+          <Button variant="ghost" aria-current={tab === 'search' ? 'page' : undefined} onClick={() => changeTab('search')}><Icon name="search" size={15}/> 업체 검색</Button>
+          <Button variant="ghost" aria-current={tab === 'saved' ? 'page' : undefined} onClick={() => changeTab('saved')}><Icon name="saved" size={15}/> 마이페이지 <span className="sidebar-count">{Object.keys(saved).length}</span></Button>
+        </nav>
+      </aside>
+      <header className="workspace-header"><Icon name={tab === 'search' ? 'building' : 'saved'} size={15}/><span>{tab === 'search' ? '업체 검색' : '마이페이지'}</span></header>
       <main>
         <div className="content">
           {tab === 'search' && <section className="search-stage" aria-label="업체 발굴">
