@@ -1,7 +1,7 @@
 'use client';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { BriefcaseBusiness, MapPin, ChevronDown, Check } from 'lucide-react';
+import { BriefcaseBusiness, MapPin, ChevronDown, Search, Check } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Picker({ fields }) {
@@ -27,7 +27,11 @@ export default function Picker({ fields }) {
         <Button variant="ghost" key={option} type="button" aria-pressed={field.value === option} onClick={() => {
           field.change(option); setTerm(''); setActive(null);
         }}>{option}{field.value === option && <Check size={14}/>}</Button>)}</div>}</section>)}
-      {!matches.length && <p>일치하는 항목이 없습니다.</p>}
+      {!matches.length && <div className="empty picker-empty">
+        <span className="empty-icon"><Search size={18}/></span>
+        <strong role="status">찾으시는 {active === '지역' ? '지역이' : '업종이'} 없어요</strong>
+        <Button variant="outline" type="button" onClick={() => setTerm('')}>전체 {active} 보기</Button>
+      </div>}
     </div></>}
   </div>;
 }

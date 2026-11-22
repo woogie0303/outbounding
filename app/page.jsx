@@ -10,17 +10,15 @@ import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption } from '../components/ui/table';
 import Picker from './Picker';
 import companies from './companies.json';
-import { findCompanies, infer, industries, industryGroups, regions, safeUrl, suggestions, toCsv } from './data.mjs';
+import { findCompanies, infer, industries, industryGroups, regions, safeUrl, toCsv } from './data.mjs';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const db = url && key ? createClient(url, key) : null;
 const savedKey = 'outbounding.saved';
-const recentKey = 'outbounding.recent';
 const read = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
 };
@@ -34,14 +32,11 @@ export default function Workspace() {
   const [query, setQuery] = useState('');
   const [industry, setIndustry] = useState('');
   const [region, setRegion] = useState('');
-  const [delivery, setDelivery] = useState(false);
   const [results, setResults] = useState(null);
   const [searched, setSearched] = useState(null);
   const [saved, setSaved] = useState({});
-  const [recent, setRecent] = useState([]);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState([]);
-  const [filter, setFilter] = useState(false);
   const [showConditions, setShowConditions] = useState(false);
   const [detail, setDetail] = useState(null);
   const [note, setNote] = useState('');
@@ -56,8 +51,6 @@ export default function Workspace() {
   useEffect(() => {
     let active = true;
     async function start() {
-      const localRecent = read(recentKey, []);
-      if (active) setRecent(localRecent);
       try {
         if (!db) {
           if (active) setSaved(read(savedKey, {}));
@@ -92,7 +85,6 @@ export default function Workspace() {
     const inferred = infer(value);
     if (inferred.industry) setIndustry(inferred.industry);
     if (inferred.region) setRegion(inferred.region);
-    setDelivery(/(?:자체|직접|자사)\s*(?:차량|배송)|직배송/u.test(value));
   }
 
   async function search(event) {
@@ -109,7 +101,6 @@ export default function Workspace() {
 
     setMessage('');
     setSelected([]);
-    setFilter(false);
     try {
       let rows = companies;
       if (db) {
@@ -121,13 +112,9 @@ export default function Workspace() {
           if (data.length < 500) break;
         }
       }
-      setResults(findCompanies(rows, industry, region, delivery));
-      if (!query.trim()) setQuery([region, industry, delivery && "직접 배송"].filter(Boolean).join(" "));
-      const conditions = { query, industry, region, delivery };
-      setSearched(conditions);
-      const next = [conditions, ...recent.filter((item) => item.industry !== industry || item.region !== region || item.delivery !== delivery)].slice(0, 5);
-      setRecent(next);
-      localStorage.setItem(recentKey, JSON.stringify(next));
+      setResults(findCompanies(rows, industry, region));
+      if (!query.trim()) setQuery([region, industry].join(" "));
+      setSearched({ industry, region });
     } catch {
       setMessage('검색을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     } finally { setBusy(false); }
@@ -139,7 +126,6 @@ export default function Workspace() {
     setShowConditions(false);
     setMessage('');
     setSelected([]);
-    setFilter(false);
   }
 
   async function persist(rows, mode, memo = '') {
@@ -187,7 +173,7 @@ export default function Workspace() {
   }
 
   const list = tab === 'saved' ? Object.values(saved).map((entry) => entry.company) : results ?? [];
-  const visible = filter ? list.filter((row) => row.direct_delivery) : list;
+  const visible = list;
   const chosen = visible.filter((row) => selected.includes(row.id));
   const isDisabled = !initialized || writing;
 
@@ -213,12 +199,13 @@ export default function Workspace() {
   return (
     <div className={landing ? 'shell landing' : 'shell workspace'}>
       {!landing && <header className="topbar">
-        <Button variant="ghost" className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); setDelivery(false); changeTab('search'); }}><span aria-hidden="true" className="route-mark" /> 아웃바운딩</Button>
+        <Button variant="ghost" className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); changeTab('search'); }}><span aria-hidden="true" className="route-mark" /> 아웃바운딩</Button>
         <Tabs value={tab} onValueChange={changeTab}><TabsList aria-label="워크스페이스">
           <TabsTrigger value="search"><Icon name="search" size={15} /> 업체 발굴</TabsTrigger>
-          <TabsTrigger value="saved"><Icon name="saved" size={15} /> 저장 목록 <span className="nav-count">{Object.keys(saved).length}</span></TabsTrigger>
+          <TabsTrigger value="saved"><Icon name="saved" size={15} /> 마이페이지</TabsTrigger>
         </TabsList></Tabs>
       </header>}
+      {landing && <Button className="my-page-link" variant="ghost" onClick={() => changeTab('saved')}>마이페이지</Button>}
       <main>
         <div className="content">
           {tab === 'search' && <section className="search-stage" aria-label="업체 발굴">
@@ -238,14 +225,8 @@ export default function Workspace() {
                     업종: { groups: industryGroups, value: industry, change: setIndustry },
                     지역: { groups: { 광역: regions.slice(0, 3), 경기권: regions.slice(3) }, value: region, change: setRegion }
                   }} />}
-                  <Collapsible className="search-history"><CollapsibleTrigger asChild><Button type="button" variant="ghost" size="sm">연관 검색어 · 최근 검색 <Icon name="arrow" size={13}/></Button></CollapsibleTrigger><CollapsibleContent>
-                  <div className="suggestions"><span>추천 검색</span>{suggestions.map((value) => <Button variant="ghost" type="button" key={value} onClick={() => applyQuery(value)}>{value}</Button>)}</div>
-                  {recent.length > 0 && <div className="suggestions"><span>최근 검색</span>{recent.map((item) => <Button variant="ghost" type="button" key={JSON.stringify(item)} onClick={() => { setQuery(item.query); setIndustry(item.industry); setRegion(item.region); setDelivery(item.delivery); }}>{item.region} · {item.industry}{item.delivery && ' · 직접 배송'}</Button>)}</div>}
-                  </CollapsibleContent></Collapsible>
-                  {landing && <Button variant="ghost" type="button" className="saved-shortcut" onClick={() => changeTab('saved')}><Icon name="saved" size={15} /> 저장 목록</Button>}
                   <div className="search-controls option-actions">
                     <Button type="submit" className="primary" disabled={busy || !industry || !region}>이 조건으로 검색 <Icon name="arrow" size={15} /></Button>
-                    <Label className="plain delivery"><Checkbox checked={delivery} onCheckedChange={(checked) => setDelivery(checked === true)} /> 직접 배송</Label>
                   </div>
                 </div>
               </div>
@@ -255,16 +236,20 @@ export default function Workspace() {
           {message && !detail && <p className="notice" role="status">{message}</p>}
           {(tab === 'saved' || (results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
             <div className="section-heading">
-              <div><h2>{tab === 'saved' ? '저장한 업체' : '발굴한 업체'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}{searched.delivery && ' · 직접 배송'}</p>}</div>
+              <div><h2>{tab === 'saved' ? '저장한 업체' : '발굴한 업체'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}</p>}</div>
               <Button variant="outline" className="outline" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={16} /> CSV 내보내기</Button>
             </div>
-            <div className="toolbar">
+            {visible.length > 0 && <div className="toolbar">
               <Button variant="ghost" type="button" className="batch-toggle" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? '선택 종료' : '목록 선택'}</Button>
               {selecting && <Label><Checkbox checked={visible.length > 0 && chosen.length === visible.length} disabled={!visible.length} onCheckedChange={(checked) => setSelected(checked === true ? visible.map((row) => row.id) : [])} /> 전체 선택</Label>}
-              <Label><Checkbox checked={filter} onCheckedChange={(checked) => { setFilter(checked === true); setSelected([]); }} /> 직접 배송 확인</Label>
               {chosen.length > 0 && <Button variant="outline" className="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</Button>}
-            </div>
-            {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p><Button variant="outline" className="outline" onClick={() => { if (filter) {setFilter(false); return;} changeTab('search'); setShowConditions(true); document.getElementById('query')?.focus(); window.scrollTo(0,0); }}>{filter ? '배송 필터 해제' : tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</Button></div>}
+            </div>}
+            {visible.length === 0 && <div className="empty">
+              <span className="empty-icon"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={20} /></span>
+              <strong>{tab === 'saved' ? '아직 저장한 업체가 없어요' : '검색된 업체가 없어요'}</strong>
+              <p>{tab === 'saved' ? '통화할 업체를 저장하면 여기에 모입니다.' : '다른 업종이나 인근 지역으로 검색해 보세요.'}</p>
+              <Button variant="outline" onClick={() => { changeTab('search'); setShowConditions(true); window.scrollTo(0,0); }}>{tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</Button>
+            </div>}
             {visible.length > 0 && <div className="crm-register">
               <div className="crm-table-wrap"><Table className="crm-table"><TableCaption className="sr-only">업체 레코드</TableCaption><TableHeader><TableRow>
                 {selecting && <TableHead>선택</TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead className="date-col">확인일</TableHead><TableHead>저장</TableHead>
@@ -288,7 +273,6 @@ export default function Workspace() {
             <TabsContent value="overview">
           <section className="detail-section"><h3>기본 정보</h3><dl><dt>주소</dt><dd>{detail.address || '확인 필요'}</dd><dt>대표전화</dt><dd>{detail.phone || '확인 필요'}</dd><dt>사업용 이메일</dt><dd>{detail.email || '확인 필요'}</dd><dt>홈페이지</dt><dd>{safeUrl(detail.website) ? <a href={safeUrl(detail.website)} target="_blank" rel="noreferrer">홈페이지 열기 ↗</a> : '확인 필요'}</dd></dl></section>
           <section className="detail-section"><h3>조사 근거</h3><p>{detail.evidence}</p><p><a href={safeUrl(detail.source_url)} target="_blank" rel="noreferrer">출처 열기 ↗</a> · {detail.verified_on} 확인</p>
-          {detail.industry === industries[0] && <><h3>첫 통화에서 확인할 질문</h3><p>{detail.direct_delivery ? '자체 배송 차량은 몇 대이고 배차는 어떻게 관리하시나요?' : '배송을 직접 운영하시나요, 외부 운송사를 이용하시나요?'}</p></>}
           </section></TabsContent><TabsContent value="note"><section className="detail-section"><Label htmlFor="note"><strong>영업 메모</strong></Label><Textarea id="note" value={note} maxLength={2000} placeholder="다음 연락에서 확인할 내용을 적어보세요." onChange={(event) => setNote(event.target.value)} /></section>
           <Button className="primary" disabled={isDisabled} onClick={() => persist([detail], 'note')}>{saved[detail.id] ? '메모 저장' : '업체와 메모 저장'}</Button></TabsContent></Tabs>
           {message && <p className="notice" role="status">{message}</p>}

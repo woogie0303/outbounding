@@ -10,7 +10,6 @@ export const industryGroups = {
 };
 export const industries = Object.values(industryGroups).flat();
 export const regions = ['경기도', '서울특별시', '인천광역시', '김포시', '용인시', '수원시', '성남시', '고양시', '화성시', '이천시', '광주시', '남양주시', '하남시', '파주시', '평택시', '안양시', '부천시', '안산시', '시흥시', '광명시', '군포시', '의왕시', '과천시', '오산시', '안성시', '양주시', '동두천시', '포천시', '여주시', '구리시', '의정부시', '연천군', '가평군', '양평군'];
-export const suggestions = ['경기도 식자재 유통사', '경기도에서 직접 배송하는 식자재 유통사', '김포 지역 식품 제조업체'];
 
 export function infer(query) {
   const industry = industries.toSorted((a, b) => b.length - a.length).find((value) => query.includes(value)) ||
@@ -22,11 +21,10 @@ export function infer(query) {
   return { industry, region };
 }
 
-export function findCompanies(rows, industry, region, delivery) {
+export function findCompanies(rows, industry, region) {
   const seen = new Set();
   return rows.filter((row) => {
     if (row.industry !== industry || ![row.region, row.city].includes(region)) return false;
-    if (delivery && !row.direct_delivery) return false;
     const key = [row.name, row.address || row.city || row.region].join('|').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}|]/gu, '');
     if (seen.has(key)) return false;
     seen.add(key);
