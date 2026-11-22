@@ -334,3 +334,17 @@
 .account-card .board-note{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.7}
 .account-card select{border:0;border-top:1px solid #f0f0f0;padding:10px 0 0;background:#fff;font-size:11px;color:#666;outline-offset:3px}
 .added-mark{font-size:10px;color:#999;font-weight:400;margin-left:8px}
+
+.account-board{grid-template-columns:repeat(6,260px);gap:14px;padding:18px;align-items:start;overflow-x:auto}
+.board-column{min-height:calc(100svh - 125px);border-radius:8px;padding:8px;transition:background 140ms ease}
+.board-column[data-over=true]{background:#eaeef2;outline:1px dashed #a1a8b2}
+.board-column h3{margin-bottom:16px;padding:0 3px;font-size:12px;gap:7px}
+.account-card{position:relative;padding:16px 14px;gap:12px;cursor:grab;transition:box-shadow 140ms ease}
+.account-card:hover{box-shadow:0 4px 12px #1c24300b;border-color:#d3d7dc}
+.account-card[data-dragging=true]{opacity:.45;cursor:grabbing}
+.card-drag-handle{position:absolute;right:7px;top:8px;color:#a5aab2;background:transparent;border:0;font-size:18px;line-height:20px;padding:0 3px;cursor:grab;touch-action:none}
+.board-company{padding-right:14px!important}
+.board-drop-hint{margin:0;font-size:11px;text-align:center;color:#a6abb3;border:1px dashed #e1e4e8;border-radius:8px;padding:24px 8px}
+.board-column:nth-child(5) .stage-dot{background:#e6f2e9;border-color:#71a67f;border-style:solid}
+.board-column:nth-child(6) .stage-dot{background:#eee;border-color:#aaa;border-style:solid}
+@media(prefers-reduced-motion:reduce){.account-card,.board-column{transition:none}}

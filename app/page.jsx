@@ -29,7 +29,20 @@ function Icon({ name, size = 18 }) {
 }
 
 export default function Workspace() {
-  const stages = ['미접촉', '통화 완료', '후속 연락', '관심 없음'];
+  const stages = ['미접촉', '접촉 중', '상담 진행', '제안·협의', '계약 완료', '종료'];
+  const [draggedId, setDraggedId] = useState(null);
+  const [dropStage, setDropStage] = useState(null);
+  const stageOf = (id) => ({'통화 완료':'접촉 중','후속 연락':'접촉 중','관심 없음':'종료'}[stagesByCompany[id]] || (stages.includes(stagesByCompany[id]) ? stagesByCompany[id] : stages[0]));
+  function moveAccount(id, stage) {
+    if (!id || !saved[id] || !stages.includes(stage)) return;
+    const next = {...stagesByCompany, [id]:stage};
+    try {
+      localStorage.setItem('outbounding.stages', JSON.stringify(next));
+      setStagesByCompany(next);
+      setMessage(saved[id].company.name + ' · ' + stage + '(으)로 이동했습니다.');
+    } catch {setMessage('상태를 저장하지 못했습니다. 다시 시도해 주세요.');}
+    setDraggedId(null);setDropStage(null);
+  }
   const [stagesByCompany, setStagesByCompany] = useState({});
   const [tab, setTab] = useState('search');
   const [query, setQuery] = useState('');
@@ -286,18 +299,22 @@ export default function Workspace() {
               <Button variant="outline" onClick={() => { changeTab('search'); setShowConditions(true); window.scrollTo(0,0); }}>{tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</Button>
             </div>}
             {tab === 'saved' && <div className="account-board">{stages.map((stage) => {
-              const cards = visible.filter((row) => (stagesByCompany[row.id] || stages[0]) === stage);
-              return <section className="board-column" key={stage}><h3><span className="stage-dot"/>{stage}<span className="stage-count">{cards.length}</span></h3>
-                <div className="board-cards">{cards.map((row) => <article className="account-card" key={row.id}>
+              const cards = visible.filter((row) => stageOf(row.id) === stage);
+              return <section className="board-column" key={stage} data-stage={stage} data-over={dropStage === stage} onDragOver={(event) => {event.preventDefault();setDropStage(stage);}} onDrop={(event) => {event.preventDefault();moveAccount(draggedId, stage);}}><h3><span className="stage-dot"/>{stage}<span className="stage-count">{cards.length}</span></h3>
+                <div className="board-cards">{cards.length === 0 && <p className="board-drop-hint">거래처를 여기로 이동</p>}{cards.map((row) => <article className="account-card" key={row.id} data-dragging={draggedId === row.id} draggable onDragStart={(event) => {event.dataTransfer.setData('text/plain', row.id);event.dataTransfer.effectAllowed='move';setDraggedId(row.id);}} onDragEnd={() => {setDraggedId(null);setDropStage(null);}}>
+                  <button type="button" className="card-drag-handle" aria-label={row.name + ' 단계 이동. 좌우 방향키로 이동'} title="드래그하여 이동 · 방향키로 단계 변경" onKeyDown={(event) => {
+                    const delta = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+                    if (delta) {event.preventDefault();moveAccount(row.id, stages[Math.max(0, Math.min(stages.length-1, stages.indexOf(stage)+delta))]);}
+                  }} onPointerDown={(event) => {if(event.pointerType === 'mouse') return;event.currentTarget.setPointerCapture(event.pointerId);setDraggedId(row.id);}}
+                  onPointerMove={(event) => {if(event.pointerType === 'mouse' || !draggedId) return;setDropStage(document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-stage]')?.dataset.stage || null);}}
+                  onPointerUp={(event) => {if(event.pointerType === 'mouse') return;const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-stage]')?.dataset.stage;if(target) moveAccount(row.id,target);else {setDraggedId(null);setDropStage(null);}}}
+                  onPointerCancel={() => {setDraggedId(null);setDropStage(null);}}>⠿</button>
                   <Button variant="ghost" className="board-company" onClick={() => openDetail(row)}><span className="account-glyph">{row.name.slice(0,1)}</span>{row.name}</Button>
                   <Badge variant="secondary">{row.industry}</Badge>
                   <p><Icon name="pin" size={13}/>{row.city || row.region}</p>
                   <p><Icon name="building" size={13}/>{row.phone || '대표전화 미확인'}</p>
                   {saved[row.id]?.note && <p className="board-note">{saved[row.id].note}</p>}
-                  <select aria-label={row.name + ' 영업 상태'} value={stage} onChange={(event) => {
-                    const next = {...stagesByCompany, [row.id]: event.target.value};
-                    try {localStorage.setItem('outbounding.stages', JSON.stringify(next));setStagesByCompany(next);} catch {setMessage('상태를 저장하지 못했습니다. 다시 시도해 주세요.');}
-                  }}>{stages.map((value) => <option key={value}>{value}</option>)}</select>
+
                 </article>)}</div>
               </section>;
             })}</div>}
