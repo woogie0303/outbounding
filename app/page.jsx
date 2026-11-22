@@ -252,11 +252,11 @@ export default function Workspace() {
             </div>}
             {visible.length > 0 && <div className="crm-register">
               <div className="crm-table-wrap"><Table className="crm-table"><TableCaption className="sr-only">업체 레코드</TableCaption><TableHeader><TableRow>
-                {selecting && <TableHead>선택</TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead className="date-col">확인일</TableHead><TableHead>저장</TableHead>
+                {selecting && <TableHead>선택</TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead>인원수</TableHead><TableHead>매출액</TableHead>
               </TableRow></TableHeader><TableBody>{visible.map((row) => <TableRow key={row.id}>
                 {selecting && <TableCell><Checkbox aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onCheckedChange={(checked) => setSelected(checked === true ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></TableCell>}
                 <TableCell><Button variant="ghost" className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}</Button></TableCell>
-                <TableCell className="industry-col"><Badge variant="secondary" data-tone={industries.indexOf(row.industry) % 3}>{row.industry}</Badge></TableCell><TableCell>{row.city || row.region}</TableCell><TableCell className="phone-col">{row.phone || '확인 필요'}</TableCell><TableCell className="date-col">{row.verified_on}</TableCell><TableCell><Button variant="ghost" className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</Button></TableCell>
+                <TableCell className="industry-col"><Badge variant="secondary" data-tone={Array.from(row.industry).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 6}>{row.industry}</Badge></TableCell><TableCell>{row.city || row.region}</TableCell><TableCell className="phone-col">{row.phone || '확인 필요'}</TableCell><TableCell><span className="metric-value">{row.headcount ?? row.employee_count ?? '미확인'}</span></TableCell><TableCell><span className="metric-value">{row.revenue ?? '미확인'}</span></TableCell>
               </TableRow>)}</TableBody></Table></div>
 
             </div>}

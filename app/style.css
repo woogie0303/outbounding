@@ -149,3 +149,21 @@
 .empty button{margin-top:4px}
 .picker-empty{padding:22px 12px}
 .option-actions{justify-content:flex-end}
+
+/* Compact account register */
+.crm-table{min-width:780px}
+.crm-table th,.crm-table td{padding:3px 12px;font-size:12px;white-space:nowrap}
+.crm-table th{height:32px;font-size:11px;background:#fafafa}
+.crm-table td{height:32px}
+.crm-table td button{height:24px;padding-block:0}
+.crm-name{font-size:12px;font-weight:500;gap:7px}
+.account-glyph{width:14px;height:14px;border-radius:3px;font-size:9px}
+.crm-table [data-slot=badge]{font-size:10px;font-weight:500;padding:2px 5px;border-radius:4px;border:0}
+.crm-table [data-tone="0"]{background:#eeeaf5;color:#68508c}
+.crm-table [data-tone="1"]{background:#eaf3eb;color:#327046}
+.crm-table [data-tone="2"]{background:#e5f1f7;color:#367291}
+.crm-table [data-tone="3"]{background:#f7e9e5;color:#a24e39}
+.crm-table [data-tone="4"]{background:#f3f0dd;color:#8b792f}
+.crm-table [data-tone="5"]{background:#f1ece4;color:#85674b}
+.metric-value{display:inline-block;padding:1px 5px;border:1px solid #eaeaea;border-radius:4px;font-size:11px}
+@media(max-width:600px){.crm-table .industry-col,.crm-table .phone-col{display:table-cell}}
