@@ -208,7 +208,7 @@ export default function Workspace() {
           <Button variant="ghost" aria-current={tab === 'saved' ? 'page' : undefined} onClick={() => changeTab('saved')}><Icon name="saved" size={15}/> 마이페이지 <span className="sidebar-count">{Object.keys(saved).length}</span></Button>
         </nav>
       </aside>
-      <header className="workspace-header"><Icon name={tab === 'search' ? 'building' : 'saved'} size={15}/><span>{tab === 'search' ? '업체 검색' : '마이페이지'}</span></header></>}
+      </>}
       <main>
         <div className="content">
           {tab === 'search' && (landing || showConditions) && <section className="search-stage" aria-label="업체 발굴">
