@@ -29,6 +29,8 @@ function Icon({ name, size = 18 }) {
 }
 
 export default function Workspace() {
+  const stages = ['미접촉', '통화 완료', '후속 연락', '관심 없음'];
+  const [stagesByCompany, setStagesByCompany] = useState({});
   const [tab, setTab] = useState('search');
   const [query, setQuery] = useState('');
   const [revenueMin, setRevenueMin] = useState('');
@@ -73,6 +75,7 @@ export default function Workspace() {
         if (active) setInitialized(true);
       }
     }
+    setStagesByCompany(read('outbounding.stages', {}));
     start();
     return () => { active = false; };
   }, []);
@@ -217,8 +220,8 @@ export default function Workspace() {
         <Button variant="ghost" className="brand" onClick={() => {setResults(null); changeTab('search');}}><span aria-hidden="true" className="route-mark"/> Outbounding</Button>
         <nav aria-label="주 메뉴">
           
-          <Button variant="ghost" aria-current={tab === 'search' ? 'page' : undefined} onClick={() => changeTab('search')}><Icon name="building" size={15}/> 거래처</Button>
-          <Button variant="ghost" aria-current={tab === 'saved' ? 'page' : undefined} onClick={() => changeTab('saved')}><Icon name="saved" size={15}/> 마이페이지 <span className="sidebar-count">{Object.keys(saved).length}</span></Button>
+          <Button variant="ghost" aria-current={tab === 'search' ? 'page' : undefined} onClick={() => changeTab('search')}><Icon name="building" size={15}/> 기업 검색</Button>
+          <Button variant="ghost" aria-current={tab === 'saved' ? 'page' : undefined} onClick={() => changeTab('saved')}><Icon name="saved" size={15}/> 내 거래처 <span className="sidebar-count">{Object.keys(saved).length}</span></Button>
         </nav>
       </aside>
       </>}
@@ -244,9 +247,7 @@ export default function Workspace() {
                   <div className="range-condition"><Label>매출액</Label><div className="range-options" role="group" aria-label="매출액 범위">{[['전체','',''],['10억 미만','0','9.99999999'],['10–50억','10','49.99999999'],['50–100억','50','99.99999999'],['100–500억','100','499.99999999'],['500억 이상','500','']].map(([label,min,max]) => <Button key={label} type="button" variant="outline" aria-pressed={revenueMin === min && revenueMax === max} onClick={() => {setRevenueMin(min);setRevenueMax(max);}}>{label}</Button>)}</div></div>
                   <div className="range-condition"><Label>인원수</Label><div className="range-options" role="group" aria-label="인원수 범위">{[['전체','',''],['1–10명','1','10'],['11–50명','11','50'],['51–100명','51','100'],['101–300명','101','300'],['301명 이상','301','']].map(([label,min,max]) => <Button key={label} type="button" variant="outline" aria-pressed={peopleMin === min && peopleMax === max} onClick={() => {setPeopleMin(min);setPeopleMax(max);}}>{label}</Button>)}</div></div>
                   <p className="range-hint">매출액·인원수 조건을 지정하면 해당 정보가 확인된 업체만 표시됩니다.</p>
-                  <div className="search-controls option-actions">
-                    <Button type="submit" className="primary" disabled={busy || !industry || !region}>이 조건으로 검색 <Icon name="arrow" size={15} /></Button>
-                  </div>
+
                 </div>
               </div>
             </form>
@@ -255,7 +256,7 @@ export default function Workspace() {
           {message && !detail && <p className="notice" role="status">{message}</p>}
           {(tab === 'saved' || (results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
             <div className="section-heading">
-              <div><h2>{tab === 'saved' ? '저장한 업체' : '거래처'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}</p>}</div>
+              <div><h2>{tab === 'saved' ? '내 거래처' : '기업 검색'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}</p>}</div>
               <div className="list-actions">
                 <form className="list-search" onSubmit={tab === 'search' ? search : (event) => event.preventDefault()}>
                   <Icon name="search" size={15}/>
@@ -272,24 +273,40 @@ export default function Workspace() {
                   <p className="range-hint">매출액·인원수 조건을 지정하면 해당 정보가 확인된 업체만 표시됩니다.</p>
                   <Button type="submit" disabled={busy || !industry || !region || (revenueMin && revenueMax && Number(revenueMin) > Number(revenueMax)) || (peopleMin && peopleMax && Number(peopleMin) > Number(peopleMax))}>적용</Button>
                 </form>}
-                {chosen.length > 0 && <Button variant="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</Button>}
+                {chosen.length > 0 && <Button variant="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '거래처 추가'}</Button>}
                 {tab === 'search' && <Button variant="ghost" size="icon" aria-label="검색 필터" title="검색 필터" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={16}/></Button>}
                 <Button variant="ghost" size="icon" aria-label={selecting ? '선택 종료' : '목록 선택'} title="목록 선택" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => {setSelecting(!selecting);setSelected([]);}}><CheckboxIcon /></Button>
                 <Button variant="ghost" size="icon" aria-label="CSV 다운로드" title="CSV 다운로드" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={17}/></Button>
               </div>
             </div>
-            {visible.length === 0 && <div className="empty">
+            {visible.length === 0 && tab !== 'saved' && <div className="empty">
               <span className="empty-icon"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={20} /></span>
               <strong>{tab === 'saved' ? '아직 저장한 업체가 없어요' : '검색된 업체가 없어요'}</strong>
               <p>{tab === 'saved' ? '통화할 업체를 저장하면 여기에 모입니다.' : '다른 업종이나 인근 지역으로 검색해 보세요.'}</p>
               <Button variant="outline" onClick={() => { changeTab('search'); setShowConditions(true); window.scrollTo(0,0); }}>{tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</Button>
             </div>}
-            {visible.length > 0 && <div className="crm-register">
+            {tab === 'saved' && <div className="account-board">{stages.map((stage) => {
+              const cards = visible.filter((row) => (stagesByCompany[row.id] || stages[0]) === stage);
+              return <section className="board-column" key={stage}><h3><span className="stage-dot"/>{stage}<span className="stage-count">{cards.length}</span></h3>
+                <div className="board-cards">{cards.map((row) => <article className="account-card" key={row.id}>
+                  <Button variant="ghost" className="board-company" onClick={() => openDetail(row)}><span className="account-glyph">{row.name.slice(0,1)}</span>{row.name}</Button>
+                  <Badge variant="secondary">{row.industry}</Badge>
+                  <p><Icon name="pin" size={13}/>{row.city || row.region}</p>
+                  <p><Icon name="building" size={13}/>{row.phone || '대표전화 미확인'}</p>
+                  {saved[row.id]?.note && <p className="board-note">{saved[row.id].note}</p>}
+                  <select aria-label={row.name + ' 영업 상태'} value={stage} onChange={(event) => {
+                    const next = {...stagesByCompany, [row.id]: event.target.value};
+                    try {localStorage.setItem('outbounding.stages', JSON.stringify(next));setStagesByCompany(next);} catch {setMessage('상태를 저장하지 못했습니다. 다시 시도해 주세요.');}
+                  }}>{stages.map((value) => <option key={value}>{value}</option>)}</select>
+                </article>)}</div>
+              </section>;
+            })}</div>}
+            {tab === 'search' && visible.length > 0 && <div className="crm-register">
               <div className="crm-table-wrap"><Table className="crm-table"><TableCaption className="sr-only">업체 레코드</TableCaption><TableHeader><TableRow>
                 {selecting && <TableHead className="selection-cell"><Checkbox aria-label="전체 업체 선택" checked={chosen.length === visible.length ? true : chosen.length > 0 ? 'indeterminate' : false} onCheckedChange={(checked) => setSelected(checked === true ? visible.map((row) => row.id) : [])}/></TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead>인원수</TableHead><TableHead>매출액</TableHead>
               </TableRow></TableHeader><TableBody>{visible.map((row) => <TableRow key={row.id}>
                 {selecting && <TableCell className="selection-cell"><Checkbox aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onCheckedChange={(checked) => setSelected(checked === true ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></TableCell>}
-                <TableCell><Button variant="ghost" className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}</Button></TableCell>
+                <TableCell><Button variant="ghost" className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}{saved[row.id] && <span className="added-mark">추가됨</span>}</Button></TableCell>
                 <TableCell className="industry-col"><Badge variant="secondary" data-tone={Array.from(row.industry).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 6}>{row.industry}</Badge></TableCell><TableCell>{row.city || row.region}</TableCell><TableCell className="phone-col">{row.phone || '확인 필요'}</TableCell><TableCell><span className="metric-value">{row.headcount ?? row.employee_count ?? '미확인'}</span></TableCell><TableCell><span className="metric-value">{row.revenue ?? '미확인'}</span></TableCell>
               </TableRow>)}</TableBody></Table></div>
 
