@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Checkbox } from '../components/ui/checkbox';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
@@ -215,8 +215,8 @@ export default function Workspace() {
       {!landing && <header className="topbar">
         <Button variant="ghost" className="brand" onClick={() => { setResults(null); setQuery(''); setIndustry(''); setRegion(''); setDelivery(false); changeTab('search'); }}><span aria-hidden="true" className="route-mark" /> 아웃바운딩</Button>
         <Tabs value={tab} onValueChange={changeTab}><TabsList aria-label="워크스페이스">
-          <TabsTrigger value="search">업체 발굴</TabsTrigger>
-          <TabsTrigger value="saved">저장 목록 {Object.keys(saved).length}</TabsTrigger>
+          <TabsTrigger value="search"><Icon name="search" size={15} /> 업체 발굴</TabsTrigger>
+          <TabsTrigger value="saved"><Icon name="saved" size={15} /> 저장 목록 <span className="nav-count">{Object.keys(saved).length}</span></TabsTrigger>
         </TabsList></Tabs>
       </header>}
       <main>
@@ -255,7 +255,7 @@ export default function Workspace() {
           {message && !detail && <p className="notice" role="status">{message}</p>}
           {(tab === 'saved' || (results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
             <div className="section-heading">
-              <div><h2>{tab === 'saved' ? '저장 목록' : '검색 결과'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}{searched.delivery && ' · 직접 배송'}</p>}</div>
+              <div><h2>{tab === 'saved' ? '저장한 업체' : '발굴한 업체'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}{searched.delivery && ' · 직접 배송'}</p>}</div>
               <Button variant="outline" className="outline" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={16} /> CSV 내보내기</Button>
             </div>
             <div className="toolbar">
@@ -281,13 +281,16 @@ export default function Workspace() {
       </main>
       <Dialog open={Boolean(detail)} onOpenChange={(open) => { if (!open) { setDetail(null); setMessage(''); } }}>
         {detail && <DialogContent className="detail" onCloseAutoFocus={(event) => { event.preventDefault(); detailTrigger.current?.focus(); }}>
-          <DialogTitle>{detail.name}</DialogTitle>
+          <div className="record-identity"><span aria-hidden="true" className="record-initial">{detail.name.slice(0,1)}</span><DialogTitle>{detail.name}</DialogTitle></div>
           <DialogDescription>{detail.region} {detail.city} · {detail.industry}</DialogDescription>
+          <Tabs defaultValue="overview" className="record-tabs">
+            <TabsList aria-label="업체 상세"><TabsTrigger value="overview">업체 정보</TabsTrigger><TabsTrigger value="note">영업 메모</TabsTrigger></TabsList>
+            <TabsContent value="overview">
           <section className="detail-section"><h3>기본 정보</h3><dl><dt>주소</dt><dd>{detail.address || '확인 필요'}</dd><dt>대표전화</dt><dd>{detail.phone || '확인 필요'}</dd><dt>사업용 이메일</dt><dd>{detail.email || '확인 필요'}</dd><dt>홈페이지</dt><dd>{safeUrl(detail.website) ? <a href={safeUrl(detail.website)} target="_blank" rel="noreferrer">홈페이지 열기 ↗</a> : '확인 필요'}</dd></dl></section>
           <section className="detail-section"><h3>조사 근거</h3><p>{detail.evidence}</p><p><a href={safeUrl(detail.source_url)} target="_blank" rel="noreferrer">출처 열기 ↗</a> · {detail.verified_on} 확인</p>
           {detail.industry === industries[0] && <><h3>첫 통화에서 확인할 질문</h3><p>{detail.direct_delivery ? '자체 배송 차량은 몇 대이고 배차는 어떻게 관리하시나요?' : '배송을 직접 운영하시나요, 외부 운송사를 이용하시나요?'}</p></>}
-          </section><section className="detail-section"><Label htmlFor="note"><strong>영업 메모</strong></Label><Textarea id="note" value={note} maxLength={2000} placeholder="다음 연락에서 확인할 내용을 적어보세요." onChange={(event) => setNote(event.target.value)} /></section>
-          <Button className="primary" disabled={isDisabled} onClick={() => persist([detail], 'note')}>{saved[detail.id] ? '메모 저장' : '업체와 메모 저장'}</Button>
+          </section></TabsContent><TabsContent value="note"><section className="detail-section"><Label htmlFor="note"><strong>영업 메모</strong></Label><Textarea id="note" value={note} maxLength={2000} placeholder="다음 연락에서 확인할 내용을 적어보세요." onChange={(event) => setNote(event.target.value)} /></section>
+          <Button className="primary" disabled={isDisabled} onClick={() => persist([detail], 'note')}>{saved[detail.id] ? '메모 저장' : '업체와 메모 저장'}</Button></TabsContent></Tabs>
           {message && <p className="notice" role="status">{message}</p>}
         </DialogContent>}
       </Dialog>
