@@ -306,3 +306,10 @@
 .range-condition>div{display:flex;gap:8px;align-items:center}
 .range-condition input{width:0;flex:1;height:32px;font-size:12px}
 .range-hint{font-size:11px;line-height:1.6;color:#8a8a8a;margin:0}
+
+.option-tabs .field-copy strong,.list-filter-dropdown .field-copy strong{font-weight:400}
+.option-tabs .field-copy small{font-weight:400}
+.option-list button,.option-list .group-choice{font-weight:400}
+.range-condition .range-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.range-options button{height:30px;padding:0 6px;font-size:11px;font-weight:400;border-color:#e7e7e7;background:#fff;color:#727272}
+.range-options button[aria-pressed=true]{background:#242424;border-color:#242424;color:#fff}
