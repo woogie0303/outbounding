@@ -233,12 +233,12 @@ export default function Workspace() {
                 <Button type="submit" className="search-submit" aria-label="업체 찾기" disabled={busy}><Icon name="arrow" size={21} /></Button>
               </div>
               <div id="search-conditions" className="condition-reveal" data-open={showConditions} inert={!showConditions}>
-                <div className="condition-inner">
+                <div className="condition-inner"><h2 className="filter-heading">검색 상세</h2>
                   {showConditions && <Picker fields={{
                     업종: { groups: industryGroups, value: industry, change: setIndustry },
                     지역: { groups: { 광역: regions.slice(0, 3), 경기권: regions.slice(3) }, value: region, change: setRegion }
                   }} />}
-                  <Collapsible className="search-history"><CollapsibleTrigger asChild><Button type="button" variant="ghost" size="sm">추천·최근 검색</Button></CollapsibleTrigger><CollapsibleContent>
+                  <Collapsible className="search-history"><CollapsibleTrigger asChild><Button type="button" variant="ghost" size="sm">연관 검색어 · 최근 검색 <Icon name="arrow" size={13}/></Button></CollapsibleTrigger><CollapsibleContent>
                   <div className="suggestions"><span>추천 검색</span>{suggestions.map((value) => <Button variant="ghost" type="button" key={value} onClick={() => applyQuery(value)}>{value}</Button>)}</div>
                   {recent.length > 0 && <div className="suggestions"><span>최근 검색</span>{recent.map((item) => <Button variant="ghost" type="button" key={JSON.stringify(item)} onClick={() => { setQuery(item.query); setIndustry(item.industry); setRegion(item.region); setDelivery(item.delivery); }}>{item.region} · {item.industry}{item.delivery && ' · 직접 배송'}</Button>)}</div>}
                   </CollapsibleContent></Collapsible>
@@ -267,11 +267,11 @@ export default function Workspace() {
             {visible.length === 0 && <div className="empty"><Icon name={tab === 'saved' ? 'saved' : 'search'} size={28} /><strong>{tab === 'saved' && !filter ? '저장한 업체가 없습니다' : '이 조건에 맞는 업체가 없습니다'}</strong><p>{tab === 'saved' && !filter ? '업체 발굴에서 관심 있는 업체를 저장해 보세요.' : '직접 배송 필터 또는 검색 지역을 조정해 보세요.'}</p><Button variant="outline" className="outline" onClick={() => { if (filter) {setFilter(false); return;} changeTab('search'); setShowConditions(true); document.getElementById('query')?.focus(); window.scrollTo(0,0); }}>{filter ? '배송 필터 해제' : tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</Button></div>}
             {visible.length > 0 && <div className="crm-register">
               <div className="crm-table-wrap"><Table className="crm-table"><TableCaption className="sr-only">업체 레코드</TableCaption><TableHeader><TableRow>
-                {selecting && <TableHead>선택</TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead>저장</TableHead>
+                {selecting && <TableHead>선택</TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead className="date-col">확인일</TableHead><TableHead>저장</TableHead>
               </TableRow></TableHeader><TableBody>{visible.map((row) => <TableRow key={row.id}>
                 {selecting && <TableCell><Checkbox aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onCheckedChange={(checked) => setSelected(checked === true ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></TableCell>}
                 <TableCell><Button variant="ghost" className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}</Button></TableCell>
-                <TableCell className="industry-col"><Badge variant="secondary">{row.industry}</Badge></TableCell><TableCell>{row.city || row.region}</TableCell><TableCell className="phone-col">{row.phone || '확인 필요'}</TableCell><TableCell><Button variant="ghost" className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</Button></TableCell>
+                <TableCell className="industry-col"><Badge variant="secondary" data-tone={industries.indexOf(row.industry) % 3}>{row.industry}</Badge></TableCell><TableCell>{row.city || row.region}</TableCell><TableCell className="phone-col">{row.phone || '확인 필요'}</TableCell><TableCell className="date-col">{row.verified_on}</TableCell><TableCell><Button variant="ghost" className={saved[row.id] ? 'outline is-saved' : 'outline'} disabled={isDisabled} onClick={() => persist([row], saved[row.id] ? 'remove' : 'add')}><Icon name="saved" size={16} /> {saved[row.id] ? '저장됨' : '저장'}</Button></TableCell>
               </TableRow>)}</TableBody></Table></div>
 
             </div>}
@@ -283,10 +283,10 @@ export default function Workspace() {
         {detail && <DialogContent className="detail" onCloseAutoFocus={(event) => { event.preventDefault(); detailTrigger.current?.focus(); }}>
           <DialogTitle>{detail.name}</DialogTitle>
           <DialogDescription>{detail.region} {detail.city} · {detail.industry}</DialogDescription>
-          <dl><dt>주소</dt><dd>{detail.address || '확인 필요'}</dd><dt>대표전화</dt><dd>{detail.phone || '확인 필요'}</dd><dt>사업용 이메일</dt><dd>{detail.email || '확인 필요'}</dd><dt>홈페이지</dt><dd>{safeUrl(detail.website) ? <a href={safeUrl(detail.website)} target="_blank" rel="noreferrer">홈페이지 열기 ↗</a> : '확인 필요'}</dd></dl>
-          <h3>확인된 정보</h3><p>{detail.evidence}</p><p><a href={safeUrl(detail.source_url)} target="_blank" rel="noreferrer">출처 열기 ↗</a> · {detail.verified_on} 확인</p>
+          <section className="detail-section"><h3>기본 정보</h3><dl><dt>주소</dt><dd>{detail.address || '확인 필요'}</dd><dt>대표전화</dt><dd>{detail.phone || '확인 필요'}</dd><dt>사업용 이메일</dt><dd>{detail.email || '확인 필요'}</dd><dt>홈페이지</dt><dd>{safeUrl(detail.website) ? <a href={safeUrl(detail.website)} target="_blank" rel="noreferrer">홈페이지 열기 ↗</a> : '확인 필요'}</dd></dl></section>
+          <section className="detail-section"><h3>조사 근거</h3><p>{detail.evidence}</p><p><a href={safeUrl(detail.source_url)} target="_blank" rel="noreferrer">출처 열기 ↗</a> · {detail.verified_on} 확인</p>
           {detail.industry === industries[0] && <><h3>첫 통화에서 확인할 질문</h3><p>{detail.direct_delivery ? '자체 배송 차량은 몇 대이고 배차는 어떻게 관리하시나요?' : '배송을 직접 운영하시나요, 외부 운송사를 이용하시나요?'}</p></>}
-          <Label htmlFor="note"><strong>영업 메모</strong></Label><Textarea id="note" value={note} maxLength={2000} placeholder="다음 연락에서 확인할 내용을 적어보세요." onChange={(event) => setNote(event.target.value)} />
+          </section><section className="detail-section"><Label htmlFor="note"><strong>영업 메모</strong></Label><Textarea id="note" value={note} maxLength={2000} placeholder="다음 연락에서 확인할 내용을 적어보세요." onChange={(event) => setNote(event.target.value)} /></section>
           <Button className="primary" disabled={isDisabled} onClick={() => persist([detail], 'note')}>{saved[detail.id] ? '메모 저장' : '업체와 메모 저장'}</Button>
           {message && <p className="notice" role="status">{message}</p>}
         </DialogContent>}
