@@ -31,6 +31,10 @@ function Icon({ name, size = 18 }) {
 export default function Workspace() {
   const [tab, setTab] = useState('search');
   const [query, setQuery] = useState('');
+  const [revenueMin, setRevenueMin] = useState('');
+  const [revenueMax, setRevenueMax] = useState('');
+  const [peopleMin, setPeopleMin] = useState('');
+  const [peopleMax, setPeopleMax] = useState('');
   const [savedQuery, setSavedQuery] = useState('');
   const [industry, setIndustry] = useState('');
   const [region, setRegion] = useState('');
@@ -114,7 +118,16 @@ export default function Workspace() {
           if (data.length < 500) break;
         }
       }
-      setResults(findCompanies(rows, industry, region));
+      const within = (value, min, max) => {
+        if (!min && !max) return true;
+        if (value === null || value === undefined || value === '') return false;
+        const number = Number(value);
+        return Number.isFinite(number) && (!min || number >= Number(min)) && (!max || number <= Number(max));
+      };
+      setResults(findCompanies(rows, industry, region).filter((row) =>
+        within(row.employee_count ?? row.headcount, peopleMin, peopleMax) &&
+        within(row.revenue, revenueMin ? Number(revenueMin) * 100000000 : '', revenueMax ? Number(revenueMax) * 100000000 : '')
+      ));
       if (!query.trim()) setQuery([region, industry].join(" "));
       setSearched({ industry, region });
     } catch {
@@ -203,8 +216,8 @@ export default function Workspace() {
       {!landing && <><aside className="workspace-sidebar">
         <Button variant="ghost" className="brand" onClick={() => {setResults(null); changeTab('search');}}><span aria-hidden="true" className="route-mark"/> Outbounding</Button>
         <nav aria-label="주 메뉴">
-          <span className="nav-section">워크스페이스</span>
-          <Button variant="ghost" aria-current={tab === 'search' ? 'page' : undefined} onClick={() => changeTab('search')}><Icon name="search" size={15}/> 업체 검색</Button>
+          
+          <Button variant="ghost" aria-current={tab === 'search' ? 'page' : undefined} onClick={() => changeTab('search')}><Icon name="building" size={15}/> 거래처</Button>
           <Button variant="ghost" aria-current={tab === 'saved' ? 'page' : undefined} onClick={() => changeTab('saved')}><Icon name="saved" size={15}/> 마이페이지 <span className="sidebar-count">{Object.keys(saved).length}</span></Button>
         </nav>
       </aside>
@@ -228,6 +241,9 @@ export default function Workspace() {
                     업종: { groups: industryGroups, value: industry, change: setIndustry },
                     지역: { groups: { 광역: regions.slice(0, 3), 경기권: regions.slice(3) }, value: region, change: setRegion }
                   }} />}
+                  <div className="range-condition"><Label htmlFor="revenue-min">매출액 <span>억원</span></Label><div><Input id="revenue-min" aria-label="최소 매출액 억원" type="number" min="0" value={revenueMin} onChange={(e) => setRevenueMin(e.target.value)} placeholder="최소"/><span>–</span><Input aria-label="최대 매출액 억원" type="number" min={revenueMin || 0} value={revenueMax} onChange={(e) => setRevenueMax(e.target.value)} placeholder="최대"/></div></div>
+                  <div className="range-condition"><Label htmlFor="people-min">인원수 <span>명</span></Label><div><Input id="people-min" aria-label="최소 인원수" type="number" min="0" step="1" value={peopleMin} onChange={(e) => setPeopleMin(e.target.value)} placeholder="최소"/><span>–</span><Input aria-label="최대 인원수" type="number" min={peopleMin || 0} step="1" value={peopleMax} onChange={(e) => setPeopleMax(e.target.value)} placeholder="최대"/></div></div>
+                  <p className="range-hint">매출액·인원수 조건을 지정하면 해당 정보가 확인된 업체만 표시됩니다.</p>
                   <div className="search-controls option-actions">
                     <Button type="submit" className="primary" disabled={busy || !industry || !region}>이 조건으로 검색 <Icon name="arrow" size={15} /></Button>
                   </div>
@@ -239,7 +255,7 @@ export default function Workspace() {
           {message && !detail && <p className="notice" role="status">{message}</p>}
           {(tab === 'saved' || (results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
             <div className="section-heading">
-              <div><h2>{tab === 'saved' ? '저장한 업체' : '발굴한 업체'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}</p>}</div>
+              <div><h2>{tab === 'saved' ? '저장한 업체' : '거래처'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}</p>}</div>
               <div className="list-actions">
                 <form className="list-search" onSubmit={tab === 'search' ? search : (event) => event.preventDefault()}>
                   <Icon name="search" size={15}/>
@@ -251,7 +267,10 @@ export default function Workspace() {
                     업종: {groups: industryGroups, value: industry, change: setIndustry},
                     지역: {groups: {광역: regions.slice(0,3), 경기권: regions.slice(3)}, value: region, change: setRegion}
                   }}/>
-                  <Button type="submit" disabled={busy || !industry || !region}>적용</Button>
+                  <div className="range-condition"><Label htmlFor="revenue-min">매출액 <span>억원</span></Label><div><Input id="revenue-min" aria-label="최소 매출액 억원" type="number" min="0" value={revenueMin} onChange={(e) => setRevenueMin(e.target.value)} placeholder="최소"/><span>–</span><Input aria-label="최대 매출액 억원" type="number" min={revenueMin || 0} value={revenueMax} onChange={(e) => setRevenueMax(e.target.value)} placeholder="최대"/></div></div>
+                  <div className="range-condition"><Label htmlFor="people-min">인원수 <span>명</span></Label><div><Input id="people-min" aria-label="최소 인원수" type="number" min="0" step="1" value={peopleMin} onChange={(e) => setPeopleMin(e.target.value)} placeholder="최소"/><span>–</span><Input aria-label="최대 인원수" type="number" min={peopleMin || 0} step="1" value={peopleMax} onChange={(e) => setPeopleMax(e.target.value)} placeholder="최대"/></div></div>
+                  <p className="range-hint">매출액·인원수 조건을 지정하면 해당 정보가 확인된 업체만 표시됩니다.</p>
+                  <Button type="submit" disabled={busy || !industry || !region || (revenueMin && revenueMax && Number(revenueMin) > Number(revenueMax)) || (peopleMin && peopleMax && Number(peopleMin) > Number(peopleMax))}>적용</Button>
                 </form>}
                 {chosen.length > 0 && <Button variant="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</Button>}
                 {tab === 'search' && <Button variant="ghost" size="icon" aria-label="검색 필터" title="검색 필터" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={16}/></Button>}

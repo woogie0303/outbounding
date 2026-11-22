@@ -296,3 +296,13 @@
 .list-actions>button:has(+button){flex-shrink:0}
 .list-actions>button:not([data-size=icon]){width:auto;white-space:nowrap}
 @media(max-width:600px){.list-filter-dropdown{right:0;width:340px}}
+
+.workspace .workspace-sidebar{background:#f5f5f5;border-right:1px solid #e7e7e7}
+.workspace-sidebar nav{margin-top:22px}
+.workspace-sidebar nav button[aria-current=page]{background:#e7e7e7}
+.range-condition{display:grid;gap:8px}
+.range-condition>label{font-size:12px;justify-content:space-between;display:flex}
+.range-condition label span{color:#999;font-weight:400}
+.range-condition>div{display:flex;gap:8px;align-items:center}
+.range-condition input{width:0;flex:1;height:32px;font-size:12px}
+.range-hint{font-size:11px;line-height:1.6;color:#8a8a8a;margin:0}
