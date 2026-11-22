@@ -1,5 +1,6 @@
 'use client';
 
+import { ListChecks as CheckboxIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '../components/ui/button';
@@ -30,6 +31,7 @@ function Icon({ name, size = 18 }) {
 export default function Workspace() {
   const [tab, setTab] = useState('search');
   const [query, setQuery] = useState('');
+  const [savedQuery, setSavedQuery] = useState('');
   const [industry, setIndustry] = useState('');
   const [region, setRegion] = useState('');
   const [results, setResults] = useState(null);
@@ -173,7 +175,7 @@ export default function Workspace() {
   }
 
   const list = tab === 'saved' ? Object.values(saved).map((entry) => entry.company) : results ?? [];
-  const visible = list;
+  const visible = tab === 'saved' ? list.filter((row) => [row.name, row.industry, row.city, row.region, row.phone].filter(Boolean).join(' ').toLowerCase().includes(savedQuery.trim().toLowerCase())) : list;
   const chosen = visible.filter((row) => selected.includes(row.id));
   const isDisabled = !initialized || writing;
 
@@ -208,10 +210,8 @@ export default function Workspace() {
       </aside>
       <header className="workspace-header"><Icon name={tab === 'search' ? 'building' : 'saved'} size={15}/><span>{tab === 'search' ? '업체 검색' : '마이페이지'}</span></header></>}
       <main>
-        {!landing && <div className="page-intro"><div><p className="page-eyebrow">워크스페이스</p><h1>{tab === 'saved' ? '마이페이지' : '업체 검색'}</h1><p>{tab === 'saved' ? '저장한 업체와 영업 메모를 관리하세요.' : '다음 통화로 이어질 업체를 찾아보세요.'}</p></div><Button variant="outline" onClick={() => {setResults(null);setQuery('');setIndustry('');setRegion('');changeTab('search');}}>새 검색 <Icon name="arrow" size={14}/></Button></div>}
-
         <div className="content">
-          {tab === 'search' && <section className="search-stage" aria-label="업체 발굴">
+          {tab === 'search' && (landing || showConditions) && <section className="search-stage" aria-label="업체 발굴">
             <h1 className="sr-only">아웃바운딩 업체 검색</h1>
             <form className="search-box" onSubmit={search}>
               {landing && <div className="composer-brand"><span aria-hidden="true" className="route-mark" />Outbounding</div>}
@@ -240,10 +240,18 @@ export default function Workspace() {
           {(tab === 'saved' || (results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
             <div className="section-heading">
               <div><h2>{tab === 'saved' ? '저장한 업체' : '발굴한 업체'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}</p>}</div>
-              <Button variant="outline" className="outline" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={16} /> CSV 내보내기</Button>
+              <div className="list-actions">
+                <form className="list-search" onSubmit={tab === 'search' ? search : (event) => event.preventDefault()}>
+                  <Icon name="search" size={15}/>
+                  <Input aria-label={tab === 'saved' ? '저장한 업체 검색' : '업체 검색'} value={tab === 'saved' ? savedQuery : query} onChange={(event) => tab === 'saved' ? setSavedQuery(event.target.value) : applyQuery(event.target.value)} placeholder={tab === 'saved' ? '저장한 업체 검색' : '업체 검색'} />
+                </form>
+                {tab === 'search' && <Button variant="ghost" size="icon" aria-label="검색 필터" title="검색 필터" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={16}/></Button>}
+                <Button variant="ghost" size="icon" aria-label={selecting ? '선택 종료' : '목록 선택'} title="목록 선택" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => {setSelecting(!selecting);setSelected([]);}}><CheckboxIcon /></Button>
+                <Button variant="ghost" size="icon" aria-label="CSV 다운로드" title="CSV 다운로드" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={17}/></Button>
+              </div>
             </div>
-            {visible.length > 0 && <div className="toolbar">
-              <Button variant="ghost" type="button" className="batch-toggle" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => { setSelecting(!selecting); setSelected([]); }}>{selecting ? '선택 종료' : '목록 선택'}</Button>
+            {selecting && visible.length > 0 && <div className="toolbar">
+
               {selecting && <Label><Checkbox checked={visible.length > 0 && chosen.length === visible.length} disabled={!visible.length} onCheckedChange={(checked) => setSelected(checked === true ? visible.map((row) => row.id) : [])} /> 전체 선택</Label>}
               {chosen.length > 0 && <Button variant="outline" className="outline" disabled={isDisabled} onClick={() => persist(chosen, tab === 'saved' ? 'remove' : 'add')}>{chosen.length}개 {tab === 'saved' ? '삭제' : '저장'}</Button>}
             </div>}

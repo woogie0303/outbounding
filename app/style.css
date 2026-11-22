@@ -257,3 +257,18 @@
 .detail .record-tabs{margin-top:12px}
 @media(max-width:800px){.workspace{grid-template-columns:160px minmax(0,1fr)}.workspace main{padding:22px 18px}.workspace-header{padding:0 18px}.workspace-sidebar{padding:14px 8px}.page-intro h1{font-size:20px}}
 @media(max-width:600px){.workspace{grid-template-columns:1fr;grid-template-rows:auto auto 1fr}.workspace-sidebar{grid-column:1;grid-row:1;min-height:0;padding:10px 14px;border-bottom:1px solid #e8eaee;display:flex;align-items:center;justify-content:space-between}.workspace-sidebar nav{display:flex;margin:0}.workspace-sidebar .nav-section,.workspace-sidebar .sidebar-count{display:none}.workspace-sidebar .brand{width:auto;font-size:12px}.workspace-sidebar nav button{font-size:11px;padding:0 8px}.workspace-header{grid-column:1;grid-row:2;height:40px}.workspace main{grid-column:1;grid-row:3;padding:22px 14px}.page-intro{align-items:flex-start}.page-intro p{font-size:12px}.page-intro button{white-space:nowrap}}
+
+.workspace{background:#fff}
+.workspace main{padding:0;max-width:none;margin:0;min-height:calc(100svh - 56px)}
+.workspace .results{border:0;border-radius:0;min-height:calc(100svh - 56px)}
+.workspace .results .section-heading{padding:14px 24px;min-height:66px;gap:18px}
+.workspace .results .section-heading p{display:none}
+.list-actions{display:flex;align-items:center;gap:5px;margin-left:auto}
+.list-actions>button{height:30px!important;width:30px;padding:6px}
+.list-actions>button[aria-pressed=true]{background:#ededed}
+.list-actions>button svg{width:17px;height:17px}
+.list-search{display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:6px;height:32px;padding:0 10px;width:240px;color:#8a8f98}
+.list-search input{border:0;box-shadow:none!important;outline:0;height:28px;padding:0;font-size:12px;background:transparent}
+.workspace .search-stage{padding:16px 24px;border-bottom:1px solid #eee;margin:0}
+@media(max-width:800px){.list-search{width:170px}.workspace .results .section-heading{padding:12px;flex-wrap:wrap}.list-actions{gap:2px}}
+@media(max-width:600px){.workspace main{padding:0}.list-search{width:145px}.list-actions{width:100%;margin:0}.list-search{flex:1}}
