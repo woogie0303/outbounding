@@ -374,3 +374,13 @@
 @keyframes action-reveal{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 .board-select-all{display:flex;gap:8px;padding:12px 26px;font-size:12px;border-bottom:1px solid #eee}
 @media(prefers-reduced-motion:reduce){.selection-action span{animation:none}.list-actions .selection-action{transition:none}}
+
+.list-actions .selection-action{width:32px;min-width:32px;padding:6px;overflow:hidden;transition:width 220ms cubic-bezier(.2,0,0,1),background-color 180ms ease}
+.list-actions .selection-action[aria-pressed=true]:not(.has-selection){background:#ededed}
+.list-actions .selection-action.has-selection{width:142px;padding-inline:12px}
+.selection-action .selection-label{display:block;white-space:nowrap;animation:selection-slide 220ms cubic-bezier(.2,0,0,1)}
+@keyframes selection-slide{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+.list-search{padding-right:5px}
+.list-search>button{margin:0;width:26px;min-width:26px;padding:5px}
+.list-search input{min-width:0;flex:1}
+@media(prefers-reduced-motion:reduce){.selection-action .selection-label{animation:none}.list-actions .selection-action{transition:none}}

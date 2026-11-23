@@ -297,11 +297,10 @@ export default function Workspace() {
                 </form>}
 
 
-                <Button className="selection-action" variant={selecting ? 'default' : 'ghost'} aria-label={selecting ? tab === 'search' ? '거래처 추가' : '선택 삭제' : '목록 선택'} disabled={selecting ? !chosen.length || isDisabled : !visible.length} onClick={async () => {
-                  if (!selecting) {setSelecting(true);return;}
+                <Button className={'selection-action' + (chosen.length ? ' has-selection' : '')} variant={chosen.length ? 'default' : 'ghost'} aria-pressed={selecting} aria-label={chosen.length ? tab === 'search' ? '거래처 추가' : '선택 삭제' : '목록 선택'} disabled={chosen.length ? isDisabled : !visible.length} onClick={async () => {
+                  if (!chosen.length) {setSelecting(!selecting);return;}
                   await persist(chosen, tab === 'saved' ? 'remove' : 'add');setSelecting(false);setSelected([]);
-                }}>{selecting ? <span key="action">{chosen.length}개 {tab === 'search' ? '거래처 추가' : '삭제'}</span> : <CheckboxIcon key="icon" size={17}/>}</Button>
-                {selecting && <Button variant="ghost" size="icon" aria-label="선택 취소" onClick={()=>{setSelecting(false);setSelected([]);}}><Icon name="close" size={15}/></Button>}
+                }}>{chosen.length ? <span className="selection-label" key="action">{chosen.length}개 {tab === 'search' ? '거래처 추가' : '삭제'}</span> : <CheckboxIcon key="icon" size={17}/>}</Button>
                 <Menu.Root><Menu.Trigger asChild><Button variant="ghost" size="icon" aria-label="더보기"><MoreHorizontal size={18}/></Button></Menu.Trigger>
                   <Menu.Portal><Menu.Content className="more-menu" align="end" sideOffset={8}>
                     {tab === 'saved' && <><Menu.RadioGroup value={accountView} onValueChange={setAccountView}><Menu.RadioItem className="more-item" value="board">보드 보기 <Menu.ItemIndicator>✓</Menu.ItemIndicator></Menu.RadioItem><Menu.RadioItem className="more-item" value="list">리스트 보기 <Menu.ItemIndicator>✓</Menu.ItemIndicator></Menu.RadioItem></Menu.RadioGroup><Menu.Separator className="more-separator"/></>}
