@@ -354,3 +354,7 @@
 .board-company{border:0;background:none;text-align:left;font-size:13px;font-weight:500;cursor:pointer}
 .board-industry{font-size:10px;color:#77668b;background:#f3f1f7;padding:3px 6px;border-radius:4px;width:fit-content}
 .card-drag-handle{touch-action:none}
+
+.drag-preview{cursor:grabbing;box-shadow:0 14px 36px #15203326;pointer-events:none}
+.drag-preview strong{font-size:13px;font-weight:500}
+.board-cards .account-card{will-change:transform}
