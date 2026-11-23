@@ -1,12 +1,16 @@
 'use client';
 import {useEffect, useState} from 'react';
 import {DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, useDroppable, closestCenter, pointerWithin, rectIntersection, DragOverlay} from '@dnd-kit/core';
-import {SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove} from '@dnd-kit/sortable';
+import {SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove, defaultAnimateLayoutChanges} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import {MapPin, Phone} from 'lucide-react';
 const stages = ['미접촉','접촉 중','상담 진행','제안·협의','계약 완료','종료'];
 function Card({row, note, open}) {
-  const {attributes,listeners,setNodeRef,transform,transition,isDragging} = useSortable({id:row.id});
+  const {attributes,listeners,setNodeRef,transform,transition,isDragging} = useSortable({
+    id:row.id,
+    transition:{duration:220,easing:'cubic-bezier(0.2, 0, 0, 1)'},
+    animateLayoutChanges:(args) => defaultAnimateLayoutChanges({...args,wasDragging:true})
+  });
   return <article ref={setNodeRef} className="account-card" {...attributes} {...listeners} aria-label={row.name + ' 이동'} style={{transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.4 : 1}}>
     <button className="board-company" onClick={() => {if (!isDragging) open(row);}}>{row.name}</button>
     <span className="board-industry">{row.industry}</span>
@@ -25,9 +29,10 @@ export default function AccountBoard({rows,saved,open,onError}) {
   const [activeId,setActiveId]=useState(null);
   const activeRow=rows.find(row=>row.id===activeId);
   function collision(args) {
-    const hits=pointerWithin(args);
-    const intersections=hits.length ? hits : rectIntersection(args);
-    if (!intersections.length) return args.pointerCoordinates ? [] : closestCenter(args);
+    const candidates={...args,droppableContainers:args.droppableContainers.filter(item=>item.id!==args.active.id)};
+    const hits=pointerWithin(candidates);
+    const intersections=hits.length ? hits : rectIntersection(candidates);
+    if (!intersections.length) return args.pointerCoordinates ? [] : closestCenter(candidates);
     const card=intersections.find(hit=>!stages.includes(hit.id));
     if (card) return [card];
     const column=intersections.find(hit=>stages.includes(hit.id));
