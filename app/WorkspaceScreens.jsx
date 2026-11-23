@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {Button} from '../components/ui/button';
 import {Input} from '../components/ui/input';
 import {Checkbox} from '../components/ui/checkbox';
+import WeekTimeline, {minutes} from './WeekTimeline';
 import {MapPin,ChevronLeft,ChevronRight,Plus,LocateFixed} from 'lucide-react';
 const load = (key,fallback) => {try{return JSON.parse(localStorage.getItem(key)) ?? fallback;}catch{return fallback;}};
 const dateKey = date => [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
@@ -22,22 +23,26 @@ export function Nearby({companies,open}) {
 export function Schedule({saved,open}) {
   const [month,setMonth]=useState(()=>new Date()),[selected,setSelected]=useState(()=>dateKey(new Date())),[items,setItems]=useState([]),[ready,setReady]=useState(false),[adding,setAdding]=useState(false),[message,setMessage]=useState('');
   useEffect(()=>{setItems(load('outbounding.schedule',[]));setReady(true);},[]);
-  function update(next){try{localStorage.setItem('outbounding.schedule',JSON.stringify(next));setItems(next);setMessage('');}catch{setMessage('일정을 저장하지 못했습니다.');}}
+  function update(next){try{localStorage.setItem('outbounding.schedule',JSON.stringify(next));setItems(next);setMessage('');return true;}catch{setMessage('일정을 저장하지 못했습니다.');return false;}}
   const start=new Date(month);
   start.setDate(start.getDate()-(start.getDay()+6)%7);
   const days=Array.from({length:7},(_,i)=>new Date(start.getFullYear(),start.getMonth(),start.getDate()+i));
   const weekItems=items.filter(item=>days.some(day=>dateKey(day)===item.date));
-  const hours=weekItems.map(item=>Number(item.time.slice(0,2)));
-  const firstHour=Math.min(8,...hours), lastHour=Math.max(19,...hours);
   const [agenda,setAgenda]=useState(false);
+  const [editing,setEditing]=useState(null);
   const [defaultTime,setDefaultTime]=useState('09:00');
-  function stepWeek(amount){const next=new Date(month);next.setDate(next.getDate()+amount*7);setMonth(next);setSelected(dateKey(next));}
-  function chooseDay(day){setSelected(dateKey(day));setAgenda(true);}
-  return <section className="schedule-screen"><div className="screen-toolbar"><h1>{month.getFullYear()}년 {month.getMonth()+1}월</h1><Button variant="outline" onClick={()=>{setMonth(new Date());setSelected(dateKey(new Date()));}}>오늘</Button><Button variant="ghost" size="icon" aria-label="이전 주" onClick={()=>stepWeek(-1)}><ChevronLeft size={16}/></Button><Button variant="ghost" size="icon" aria-label="다음 주" onClick={()=>stepWeek(1)}><ChevronRight size={16}/></Button><Button className="toolbar-end" onClick={()=>{setAdding(true);setAgenda(true);}}><Plus size={15}/>일정 추가</Button></div>
-    {message && <p role="status">{message}</p>}<div className="week-layout"><div className="week-scroll"><div className="week-grid">
-      <div className="week-head">시간</div>{days.map(day=><button className="week-head" key={dateKey(day)} onClick={()=>chooseDay(day)}>{['일','월','화','수','목','금','토'][day.getDay()]} <b data-today={dateKey(day)===dateKey(new Date())}>{day.getDate()}</b></button>)}
-      {Array.from({length:lastHour-firstHour+1},(_,i)=>i+firstHour).map(hour=><div className="week-row" key={hour}><small>{String(hour).padStart(2,'0')}:00</small>{days.map(day=><div className="week-cell" key={dateKey(day)}><button className="slot-add" aria-label={dateKey(day)+' '+hour+'시 일정 추가'} onClick={()=>{chooseDay(day);setDefaultTime(String(hour).padStart(2,'0')+':00');setAdding(true);}}/>{weekItems.filter(item=>item.date===dateKey(day) && Number(item.time.slice(0,2))===hour).sort((a,b)=>a.time.localeCompare(b.time)).map(item=><button className="week-event" data-done={item.done} key={item.id} onClick={()=>{chooseDay(day);setAdding(false);}}>{item.time} {saved[item.company]?.company.name || '삭제된 거래처'}</button>)}</div>)}</div>)}
-    </div></div>{agenda && <aside className="day-agenda"><Button className="agenda-close" variant="ghost" onClick={()=>{setAgenda(false);setAdding(false);}}>닫기</Button><h2>{selected}</h2>{adding && <form onSubmit={e=>{e.preventDefault();const data=new FormData(e.currentTarget);update([...items,{id:crypto.randomUUID(),date:selected,company:data.get('company'),time:data.get('time'),memo:data.get('memo'),done:false}]);setAdding(false);}}><label>거래처<select name="company" required><option value="">거래처 선택</option>{Object.values(saved).map(({company})=><option key={company.id} value={company.id}>{company.name}</option>)}</select></label><label>시간<Input name="time" type="time" defaultValue={defaultTime} required/></label><label>메모<Input name="memo" maxLength={200}/></label><Button disabled={!ready || !Object.keys(saved).length}>추가</Button></form>}
+  function stepWeek(amount){const next=new Date(month);next.setDate(next.getDate()+amount*7);setAgenda(false);setMonth(next);setSelected(dateKey(next));}
+  return <section className="schedule-screen"><div className="screen-toolbar"><h1>{month.getFullYear()}년 {month.getMonth()+1}월</h1><Button variant="outline" onClick={()=>{setAgenda(false);setMonth(new Date());setSelected(dateKey(new Date()));}}>오늘</Button><Button variant="ghost" size="icon" aria-label="이전 주" onClick={()=>stepWeek(-1)}><ChevronLeft size={16}/></Button><Button variant="ghost" size="icon" aria-label="다음 주" onClick={()=>stepWeek(1)}><ChevronRight size={16}/></Button><Button className="toolbar-end" onClick={()=>{setEditing(null);setAdding(true);setAgenda(true);}}><Plus size={15}/>일정 추가</Button></div>
+    {message && <p role="status">{message}</p>}<div className="week-layout"><WeekTimeline dates={days.map(dateKey)} items={weekItems} today={dateKey(new Date())}
+      name={item=>saved[item.company]?.company.name || '삭제된 거래처'}
+      onSlot={(date,time)=>{setSelected(date);setDefaultTime(time);setEditing(null);setAgenda(true);setAdding(true);}}
+      onDay={date=>{setSelected(date);setAdding(false);setAgenda(true);}}
+      onOpen={item=>{setSelected(item.date);setDefaultTime(item.time);setEditing(item);setAdding(true);setAgenda(true);}}
+      onMove={(id,destination)=>update(items.map(item=>item.id===id?{...item,...destination}:item))}/>
+    {agenda && <aside className="day-agenda"><Button className="agenda-close" variant="ghost" onClick={()=>{setAgenda(false);setAdding(false);}}>닫기</Button><h2>{selected}</h2>{adding && <form key={editing?.id || selected+defaultTime} onSubmit={e=>{e.preventDefault();const data=new FormData(e.currentTarget);const time=data.get('time'),duration=Number(data.get('duration'));
+      if(minutes(time)+duration>1440){setMessage('일정이 자정을 넘지 않도록 시간을 조정해 주세요.');return;}
+      const entry={id:editing?.id || crypto.randomUUID(),done:editing?.done || false,date:data.get('date'),company:data.get('company'),time,duration,memo:data.get('memo')};
+      if(!update(editing?items.map(item=>item.id===editing.id?entry:item):[...items,entry]))return;setMonth(new Date(entry.date+"T12:00:00"));setSelected(entry.date);setAdding(false);}}><label>날짜<Input type="date" name="date" defaultValue={selected} required/></label><label>거래처<select name="company" defaultValue={editing?.company || ""} required><option value="">거래처 선택</option>{Object.values(saved).map(({company})=><option key={company.id} value={company.id}>{company.name}</option>)}</select></label><label>시간<Input name="time" type="time" defaultValue={defaultTime} required/></label><label>소요 시간<select name="duration" defaultValue={editing?.duration || 30}>{[15,30,45,60,90,120].map(n=><option key={n} value={n}>{n}분</option>)}</select></label><label>메모<Input defaultValue={editing?.memo || ""} name="memo" maxLength={200}/></label><Button disabled={!ready || !Object.keys(saved).length}>{editing?'저장':'추가'}</Button></form>}
     {!items.some(item=>item.date===selected) && <p className="muted">등록된 연락 일정이 없습니다.</p>}{items.filter(item=>item.date===selected).sort((a,b)=>a.time.localeCompare(b.time)).map(item=><div className="agenda-item" key={item.id}><Checkbox aria-label="연락 완료" checked={item.done} onCheckedChange={done=>update(items.map(value=>value.id===item.id?{...value,done:done===true}:value))}/><div><small>{item.time}</small><button onClick={()=>saved[item.company] && open(saved[item.company].company)}>{saved[item.company]?.company.name || '삭제된 거래처'}</button><p>{item.memo}</p></div><Button variant="ghost" size="sm" onClick={()=>update(items.filter(value=>value.id!==item.id))}>삭제</Button></div>)}</aside>}</div></section>;
 }
 export function Settings({user,count}) {
