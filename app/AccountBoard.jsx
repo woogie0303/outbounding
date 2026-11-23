@@ -3,28 +3,30 @@ import {useEffect, useState} from 'react';
 import {DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, useDroppable, closestCenter, pointerWithin, rectIntersection, DragOverlay} from '@dnd-kit/core';
 import {SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove, defaultAnimateLayoutChanges} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
+import {Checkbox} from '../components/ui/checkbox';
 import {MapPin, Phone} from 'lucide-react';
 const stages = ['미접촉','접촉 중','상담 진행','제안·협의','계약 완료','종료'];
-function Card({row, note, open}) {
+function Card({row, note, open, selecting, selected, onSelect}) {
   const {attributes,listeners,setNodeRef,transform,transition,isDragging} = useSortable({
-    id:row.id,
+    id:row.id, disabled:selecting,
     transition:{duration:220,easing:'cubic-bezier(0.2, 0, 0, 1)'},
     animateLayoutChanges:(args) => defaultAnimateLayoutChanges({...args,wasDragging:true})
   });
   return <article ref={setNodeRef} className="account-card" {...attributes} {...listeners} aria-label={row.name + ' 이동'} style={{transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.4 : 1}}>
+    {selecting && <div onPointerDown={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}><Checkbox aria-label={row.name+' 선택'} checked={selected.includes(row.id)} onCheckedChange={checked=>onSelect(row.id,checked === true)}/></div>}
     <button className="board-company" onClick={() => {if (!isDragging) open(row);}}>{row.name}</button>
     <span className="board-industry">{row.industry}</span>
     <p><MapPin size={13}/>{row.city || row.region}</p><p><Phone size={13}/>{row.phone || '대표전화 미확인'}</p>
     {note && <p className="board-note">{note}</p>}
   </article>;
 }
-function Column({stage,rows,saved,open}) {
+function Column({stage,rows,saved,open,...selection}) {
   const {setNodeRef,isOver}=useDroppable({id:stage});
   return <section ref={setNodeRef} className="board-column" data-over={isOver}><h3><span className="stage-dot"/>{stage}<span className="stage-count">{rows.length}</span></h3>
-    <SortableContext items={rows.map(row=>row.id)} strategy={verticalListSortingStrategy}><div className="board-cards">{rows.map(row=><Card key={row.id} row={row} note={saved[row.id]?.note} open={open}/>)}</div></SortableContext>
+    <SortableContext items={rows.map(row=>row.id)} strategy={verticalListSortingStrategy}><div className="board-cards">{rows.map(row=><Card key={row.id} row={row} note={saved[row.id]?.note} open={open} {...selection}/>)}</div></SortableContext>
   </section>;
 }
-export default function AccountBoard({rows,saved,open,onError}) {
+export default function AccountBoard({rows,saved,open,onError,...selection}) {
   const [layout,setLayout]=useState({});
   const [activeId,setActiveId]=useState(null);
   const activeRow=rows.find(row=>row.id===activeId);
@@ -62,7 +64,7 @@ export default function AccountBoard({rows,saved,open,onError}) {
     try{localStorage.setItem('outbounding.board',JSON.stringify(next));setLayout(next);}catch{onError('정렬을 저장하지 못했습니다.');}
   }
   return <DndContext sensors={sensors} collisionDetection={collision} onDragStart={({active})=>setActiveId(active.id)} onDragCancel={()=>setActiveId(null)} onDragEnd={drop}>
-    <div className="account-board">{stages.map(stage=><Column key={stage} stage={stage} rows={groups[stage]} saved={saved} open={open}/>)}</div>
+    <div className="account-board">{stages.map(stage=><Column key={stage} stage={stage} rows={groups[stage]} saved={saved} open={open} {...selection}/>)}</div>
     <DragOverlay>{activeRow && <article className="account-card drag-preview"><strong>{activeRow.name}</strong><span className="board-industry">{activeRow.industry}</span><p>{activeRow.city || activeRow.region}</p><p>{activeRow.phone || '대표전화 미확인'}</p>{saved[activeRow.id]?.note && <p className="board-note">{saved[activeRow.id].note}</p>}</article>}</DragOverlay>
   </DndContext>;
 }

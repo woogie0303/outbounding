@@ -1,6 +1,6 @@
 'use client';
 
-import { ListChecks as CheckboxIcon } from 'lucide-react';
+import { MoreHorizontal, ListChecks as CheckboxIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '../components/ui/button';
@@ -12,6 +12,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption } from '../components/ui/table';
+import { DropdownMenu as Menu } from 'radix-ui';
 import Picker from './Picker';
 import AccountBoard from './AccountBoard';
 import companies from './companies.json';
@@ -30,6 +31,7 @@ function Icon({ name, size = 18 }) {
 }
 
 export default function Workspace() {
+  const [accountView, setAccountView] = useState('board');
   const [tab, setTab] = useState('search');
   const [query, setQuery] = useState('');
   const [revenueMin, setRevenueMin] = useState('');
@@ -209,15 +211,20 @@ export default function Workspace() {
   const chosen = visible.filter((row) => selected.includes(row.id));
   const isDisabled = !initialized || writing;
 
-  function exportCsv() {
+  async function exportCsv() {
     if (!visible.length) return;
-    const file = new Blob([toCsv(chosen.length ? chosen : visible, saved)], { type: 'text/csv;charset=utf-8;' });
-    const href = URL.createObjectURL(file);
-    const link = document.createElement('a');
-    link.href = href;
-    link.download = 'outbounding-업체목록.csv';
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(href), 1000);
+    try {
+      const {Workbook} = await import('exceljs');
+      const book = new Workbook();
+      const sheet = book.addWorksheet('업체 목록');
+      sheet.columns = [{header:'업체명',key:'name',width:24},{header:'업종',key:'industry',width:22},{header:'지역',key:'region',width:20},{header:'대표전화',key:'phone',width:20},{header:'인원수',key:'headcount',width:14},{header:'매출액',key:'revenue',width:20}];
+      for (const row of chosen.length ? chosen : visible) sheet.addRow({...row,region:row.city || row.region,headcount:row.employee_count ?? row.headcount ?? ''});
+      const file = new Blob([await book.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const href = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href=href;link.download='outbounding-업체목록.xlsx';link.click();
+      setTimeout(()=>URL.revokeObjectURL(href),1000);
+    } catch {setMessage('엑셀 다운로드에 실패했습니다. 다시 시도해 주세요.');}
   }
 
   function openDetail(row) {
@@ -275,6 +282,7 @@ export default function Workspace() {
                 <form className="list-search" onSubmit={tab === 'search' ? search : (event) => event.preventDefault()}>
                   <Icon name="search" size={15}/>
                   <Input aria-label={tab === 'saved' ? '저장한 업체 검색' : '업체 검색'} value={tab === 'saved' ? savedQuery : query} onChange={(event) => tab === 'saved' ? setSavedQuery(event.target.value) : applyQuery(event.target.value)} placeholder={tab === 'saved' ? '저장한 업체 검색' : '업체 검색'} />
+                  {tab === 'search' && <Button type="button" variant="ghost" size="icon" aria-label="검색 필터" title="검색 필터" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={16}/></Button>}
                 </form>
                 {tab === 'search' && showConditions && <form className="list-filter-dropdown" onSubmit={search}>
                   <div className="dropdown-heading"><strong>검색 조건</strong><Button type="button" variant="ghost" size="icon" aria-label="검색 조건 닫기" onClick={() => setShowConditions(false)}><Icon name="close" size={14}/></Button></div>
@@ -288,9 +296,18 @@ export default function Workspace() {
                   <Button type="submit" disabled={busy || !industry || !region || (revenueMin && revenueMax && Number(revenueMin) > Number(revenueMax)) || (peopleMin && peopleMax && Number(peopleMin) > Number(peopleMax))}>적용</Button>
                 </form>}
 
-                {tab === 'search' && <Button variant="ghost" size="icon" aria-label="검색 필터" title="검색 필터" onClick={() => setShowConditions(!showConditions)}><Icon name="sliders" size={16}/></Button>}
-                <Button variant="ghost" size="icon" aria-label={selecting ? '선택 종료' : '목록 선택'} title="목록 선택" aria-pressed={selecting} disabled={!visible.length && !selecting} onClick={() => {setSelecting(!selecting);setSelected([]);}}><CheckboxIcon /></Button>
-                <Button variant="ghost" size="icon" aria-label="CSV 다운로드" title="CSV 다운로드" onClick={exportCsv} disabled={!visible.length}><Icon name="download" size={17}/></Button>
+
+                <Button className="selection-action" variant={selecting ? 'default' : 'ghost'} aria-label={selecting ? tab === 'search' ? '거래처 추가' : '선택 삭제' : '목록 선택'} disabled={selecting ? !chosen.length || isDisabled : !visible.length} onClick={async () => {
+                  if (!selecting) {setSelecting(true);return;}
+                  await persist(chosen, tab === 'saved' ? 'remove' : 'add');setSelecting(false);setSelected([]);
+                }}>{selecting ? <span key="action">{chosen.length}개 {tab === 'search' ? '거래처 추가' : '삭제'}</span> : <CheckboxIcon key="icon" size={17}/>}</Button>
+                {selecting && <Button variant="ghost" size="icon" aria-label="선택 취소" onClick={()=>{setSelecting(false);setSelected([]);}}><Icon name="close" size={15}/></Button>}
+                <Menu.Root><Menu.Trigger asChild><Button variant="ghost" size="icon" aria-label="더보기"><MoreHorizontal size={18}/></Button></Menu.Trigger>
+                  <Menu.Portal><Menu.Content className="more-menu" align="end" sideOffset={8}>
+                    {tab === 'saved' && <><Menu.RadioGroup value={accountView} onValueChange={setAccountView}><Menu.RadioItem className="more-item" value="board">보드 보기 <Menu.ItemIndicator>✓</Menu.ItemIndicator></Menu.RadioItem><Menu.RadioItem className="more-item" value="list">리스트 보기 <Menu.ItemIndicator>✓</Menu.ItemIndicator></Menu.RadioItem></Menu.RadioGroup><Menu.Separator className="more-separator"/></>}
+                    <Menu.Item className="more-item" disabled={!visible.length} onSelect={exportCsv}><Icon name="download" size={15}/> 엑셀 다운로드</Menu.Item>
+                  </Menu.Content></Menu.Portal>
+                </Menu.Root>
               </div>
             </div>
             {visible.length === 0 && tab !== 'saved' && <div className="empty">
@@ -299,9 +316,10 @@ export default function Workspace() {
               <p>{tab === 'saved' ? '통화할 업체를 저장하면 여기에 모입니다.' : '다른 업종이나 인근 지역으로 검색해 보세요.'}</p>
               <Button variant="outline" onClick={() => { changeTab('search'); setShowConditions(true); window.scrollTo(0,0); }}>{tab === 'saved' ? '업체 찾기' : '검색 조건 변경'}</Button>
             </div>}
-            {tab === 'saved' && <AccountBoard rows={visible} saved={saved} open={openDetail} onError={setMessage}/>}
-            {tab === 'search' && chosen.length > 0 && <div className="selection-float"><Button disabled={isDisabled} onClick={() => persist(chosen, 'add')}>{chosen.length}개 거래처 추가</Button></div>}
-            {tab === 'search' && visible.length > 0 && <div className="crm-register">
+            {tab === 'saved' && selecting && accountView === 'board' && <Label className="board-select-all"><Checkbox checked={visible.length > 0 && chosen.length === visible.length ? true : chosen.length ? 'indeterminate' : false} onCheckedChange={checked=>setSelected(checked === true ? visible.map(row=>row.id) : [])}/>전체 선택</Label>}
+            {tab === 'saved' && accountView === 'board' && <AccountBoard rows={visible} saved={saved} open={openDetail} onError={setMessage} selecting={selecting} selected={selected} onSelect={(id,checked)=>setSelected(current=>checked ? [...new Set([...current,id])] : current.filter(value=>value!==id))}/>}
+
+            {(tab === 'search' || accountView === 'list') && visible.length > 0 && <div className="crm-register">
               <div className="crm-table-wrap"><Table className="crm-table"><TableCaption className="sr-only">업체 레코드</TableCaption><TableHeader><TableRow>
                 {selecting && <TableHead className="selection-cell"><Checkbox aria-label="전체 업체 선택" checked={chosen.length === visible.length ? true : chosen.length > 0 ? 'indeterminate' : false} onCheckedChange={(checked) => setSelected(checked === true ? visible.map((row) => row.id) : [])}/></TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead>인원수</TableHead><TableHead>매출액</TableHead>
               </TableRow></TableHeader><TableBody>{visible.map((row) => <TableRow key={row.id}>
