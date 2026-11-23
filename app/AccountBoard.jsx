@@ -5,7 +5,7 @@ import {SortableContext, useSortable, sortableKeyboardCoordinates, verticalListS
 import {CSS} from '@dnd-kit/utilities';
 import {Checkbox} from '../components/ui/checkbox';
 import {MapPin, Phone} from 'lucide-react';
-const stages = ['미접촉','접촉 중','상담 진행','제안·협의','계약 완료','종료'];
+import {stages} from './stages.mjs';
 function Card({row, note, open, selecting, selected, onSelect}) {
   const {attributes,listeners,setNodeRef,transform,transition,isDragging} = useSortable({
     id:row.id, disabled:selecting,
@@ -13,8 +13,8 @@ function Card({row, note, open, selecting, selected, onSelect}) {
     animateLayoutChanges:(args) => defaultAnimateLayoutChanges({...args,wasDragging:true})
   });
   return <article ref={setNodeRef} className="account-card" {...attributes} {...listeners} aria-label={row.name + ' 이동'} style={{transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.4 : 1}}>
-    {selecting && <div onPointerDown={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}><Checkbox aria-label={row.name+' 선택'} checked={selected.includes(row.id)} onCheckedChange={checked=>onSelect(row.id,checked === true)}/></div>}
-    <button className="board-company" onClick={() => {if (!isDragging) open(row);}}>{row.name}</button>
+    <div className="card-title-row"><button className="board-company" onClick={() => {if (!isDragging) open(row);}}>{row.name}</button>
+    {selecting && <div onPointerDown={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}><Checkbox aria-label={row.name+' 선택'} checked={selected.includes(row.id)} onCheckedChange={checked=>onSelect(row.id,checked === true)}/></div>}</div>
     <span className="board-industry">{row.industry}</span>
     <p><MapPin size={13}/>{row.city || row.region}</p><p><Phone size={13}/>{row.phone || '대표전화 미확인'}</p>
     {note && <p className="board-note">{note}</p>}
@@ -22,7 +22,7 @@ function Card({row, note, open, selecting, selected, onSelect}) {
 }
 function Column({stage,rows,saved,open,...selection}) {
   const {setNodeRef,isOver}=useDroppable({id:stage});
-  return <section ref={setNodeRef} className="board-column" data-over={isOver}><h3><span className="stage-dot"/>{stage}<span className="stage-count">{rows.length}</span></h3>
+  return <section ref={setNodeRef} className="board-column" data-stage-index={stages.indexOf(stage)} data-over={isOver}><h3><span className="stage-dot"/>{stage}<span className="stage-count">{rows.length}</span></h3>
     <SortableContext items={rows.map(row=>row.id)} strategy={verticalListSortingStrategy}><div className="board-cards">{rows.map(row=><Card key={row.id} row={row} note={saved[row.id]?.note} open={open} {...selection}/>)}</div></SortableContext>
   </section>;
 }

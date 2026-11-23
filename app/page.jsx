@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreHorizontal, ListChecks as CheckboxIcon } from 'lucide-react';
+import { MapPin, CalendarDays, Settings as SettingsIcon, Columns3, List, MoreHorizontal, ListChecks as CheckboxIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '../components/ui/button';
@@ -15,6 +15,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCap
 import { DropdownMenu as Menu } from 'radix-ui';
 import Picker from './Picker';
 import AccountBoard from './AccountBoard';
+import {Nearby, Schedule, Settings} from './WorkspaceScreens';
+import {stages,readStage} from './stages.mjs';
 import companies from './companies.json';
 import { findCompanies, infer, industries, industryGroups, regions, safeUrl, toCsv } from './data.mjs';
 
@@ -105,6 +107,7 @@ export default function Workspace() {
         if (active) setInitialized(true);
       }
     }
+    document.documentElement.dataset.compact=String(read('outbounding.compact',false));
     start();
     return () => { active = false; };
   }, []);
@@ -257,11 +260,16 @@ export default function Workspace() {
           
           <Button variant="ghost" aria-current={tab === 'search' ? 'page' : undefined} onClick={() => changeTab('search')}><Icon name="building" size={15}/> 기업 검색</Button>
           <Button variant="ghost" aria-current={tab === 'saved' ? 'page' : undefined} onClick={() => changeTab('saved')}><Icon name="saved" size={15}/> 내 거래처 <span className="sidebar-count">{Object.keys(saved).length}</span></Button>
-        </nav>
+          <Button variant="ghost" aria-current={tab === 'nearby' ? 'page' : undefined} onClick={()=>changeTab('nearby')}><MapPin size={15}/>주변 업체</Button>
+          <Button variant="ghost" aria-current={tab === 'schedule' ? 'page' : undefined} onClick={()=>changeTab('schedule')}><CalendarDays size={15}/>연락 일정</Button>
+        </nav><Button className="sidebar-settings" variant="ghost" aria-current={tab === 'settings' ? 'page' : undefined} onClick={()=>changeTab('settings')}><SettingsIcon size={15}/>설정</Button>
       </aside>
       </>}
       <main>
         <div className="content">
+          {tab === 'nearby' && <Nearby companies={companies} open={openDetail}/>}
+          {tab === 'schedule' && <Schedule saved={saved} open={openDetail}/>}
+          {tab === 'settings' && <Settings user={user} count={Object.keys(saved).length}/>}
           {tab === 'search' && landing && <section className="search-stage" aria-label="업체 발굴">
             <h1 className="sr-only">아웃바운딩 업체 검색</h1>
             <form className="search-box" onSubmit={search}>
@@ -289,7 +297,7 @@ export default function Workspace() {
             {busy && <p className="search-status" role="status">업체를 찾고 있어요…</p>}
           </section>}
           {message && !detail && <p className="notice" role="status">{message}</p>}
-          {(tab === 'saved' || (results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
+          {(tab === 'saved' || (tab === 'search' && results !== null && !busy)) && <section className="results" key={tab === 'saved' ? tab : JSON.stringify(searched)}>
             <div className="section-heading">
               <div><h2>{tab === 'saved' ? '내 거래처' : '기업 검색'} <span>{visible.length}개</span></h2>{tab === 'search' && searched && <p>{searched.region} · {searched.industry}</p>}</div>
               <div className="list-actions">
@@ -315,9 +323,10 @@ export default function Workspace() {
                   if (!chosen.length) {setSelecting(!selecting);return;}
                   await persist(chosen, tab === 'saved' ? 'remove' : 'add');setSelecting(false);setSelected([]);
                 }}>{chosen.length ? <span className="selection-label" key="action"><SelectionCount value={chosen.length}/>개 {tab === 'search' ? '거래처 추가' : '삭제'}</span> : <CheckboxIcon key="icon" size={17}/>}</Button>
+                {tab === 'saved' && <div className="view-toggle" role="group" aria-label="거래처 보기"><Button variant="ghost" size="icon" aria-label="보드 보기" aria-pressed={accountView==='board'} onClick={()=>setAccountView('board')}><Columns3 size={16}/></Button><Button variant="ghost" size="icon" aria-label="리스트 보기" aria-pressed={accountView==='list'} onClick={()=>setAccountView('list')}><List size={16}/></Button></div>}
                 <Menu.Root><Menu.Trigger asChild><Button variant="ghost" size="icon" aria-label="더보기"><MoreHorizontal size={18}/></Button></Menu.Trigger>
                   <Menu.Portal><Menu.Content className="more-menu" align="end" sideOffset={8}>
-                    {tab === 'saved' && <><Menu.RadioGroup value={accountView} onValueChange={setAccountView}><Menu.RadioItem className="more-item" value="board">보드 보기 <Menu.ItemIndicator>✓</Menu.ItemIndicator></Menu.RadioItem><Menu.RadioItem className="more-item" value="list">리스트 보기 <Menu.ItemIndicator>✓</Menu.ItemIndicator></Menu.RadioItem></Menu.RadioGroup><Menu.Separator className="more-separator"/></>}
+
                     <Menu.Item className="more-item" disabled={!visible.length} onSelect={exportCsv}><Icon name="download" size={15}/> 엑셀 다운로드</Menu.Item>
                   </Menu.Content></Menu.Portal>
                 </Menu.Root>
@@ -332,12 +341,12 @@ export default function Workspace() {
             {tab === 'saved' && selecting && accountView === 'board' && <Label className="board-select-all"><Checkbox checked={visible.length > 0 && chosen.length === visible.length ? true : chosen.length ? 'indeterminate' : false} onCheckedChange={checked=>setSelected(checked === true ? visible.map(row=>row.id) : [])}/>전체 선택</Label>}
             {tab === 'saved' && accountView === 'board' && <AccountBoard rows={visible} saved={saved} open={openDetail} onError={setMessage} selecting={selecting} selected={selected} onSelect={(id,checked)=>setSelected(current=>checked ? [...new Set([...current,id])] : current.filter(value=>value!==id))}/>}
 
-            {(tab === 'search' || accountView === 'list') && visible.length > 0 && <div className="crm-register">
+            {(tab === 'search' || (tab === 'saved' && accountView === 'list')) && visible.length > 0 && <div className="crm-register">
               <div className="crm-table-wrap"><Table className="crm-table"><TableCaption className="sr-only">업체 레코드</TableCaption><TableHeader><TableRow>
                 {selecting && <TableHead className="selection-cell"><Checkbox aria-label="전체 업체 선택" checked={chosen.length === visible.length ? true : chosen.length > 0 ? 'indeterminate' : false} onCheckedChange={(checked) => setSelected(checked === true ? visible.map((row) => row.id) : [])}/></TableHead>}<TableHead>업체명</TableHead><TableHead className="industry-col">업종</TableHead><TableHead>지역</TableHead><TableHead className="phone-col">대표전화</TableHead><TableHead>인원수</TableHead><TableHead>매출액</TableHead>
               </TableRow></TableHeader><TableBody>{visible.map((row) => <TableRow key={row.id}>
                 {selecting && <TableCell className="selection-cell"><Checkbox aria-label={`${row.name} 선택`} checked={selected.includes(row.id)} onCheckedChange={(checked) => setSelected(checked === true ? [...selected, row.id] : selected.filter((id) => id !== row.id))} /></TableCell>}
-                <TableCell><Button variant="ghost" className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}{saved[row.id] && <span className="added-mark">추가됨</span>}</Button></TableCell>
+                <TableCell><Button variant="ghost" className="crm-name" onClick={() => openDetail(row)}><span className="account-glyph" aria-hidden="true">{row.name.slice(0,1)}</span>{row.name}{tab === 'saved' ? <span className="stage-badge" data-stage-index={stages.indexOf(readStage(row.id))}>{readStage(row.id)}</span> : saved[row.id] && <span className="added-mark">추가됨</span>}</Button></TableCell>
                 <TableCell className="industry-col"><Badge variant="secondary" data-tone={Array.from(row.industry).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 6}>{row.industry}</Badge></TableCell><TableCell>{row.city || row.region}</TableCell><TableCell className="phone-col">{row.phone || '확인 필요'}</TableCell><TableCell><span className="metric-value">{row.headcount ?? row.employee_count ?? '미확인'}</span></TableCell><TableCell><span className="metric-value">{row.revenue ?? '미확인'}</span></TableCell>
               </TableRow>)}</TableBody></Table></div>
 
