@@ -323,9 +323,14 @@ export default function Workspace() {
                   if (!chosen.length) {setSelecting(!selecting);return;}
                   await persist(chosen, tab === 'saved' ? 'remove' : 'add');setSelecting(false);setSelected([]);
                 }}>{chosen.length ? <span className="selection-label" key="action"><SelectionCount value={chosen.length}/>개 {tab === 'search' ? '거래처 추가' : '삭제'}</span> : <CheckboxIcon key="icon" size={17}/>}</Button>
-                {tab === 'saved' && <div className="view-toggle" role="group" aria-label="거래처 보기"><Button variant="ghost" size="icon" aria-label="보드 보기" aria-pressed={accountView==='board'} onClick={()=>setAccountView('board')}><Columns3 size={16}/></Button><Button variant="ghost" size="icon" aria-label="리스트 보기" aria-pressed={accountView==='list'} onClick={()=>setAccountView('list')}><List size={16}/></Button></div>}
+
                 <Menu.Root><Menu.Trigger asChild><Button variant="ghost" size="icon" aria-label="더보기"><MoreHorizontal size={18}/></Button></Menu.Trigger>
                   <Menu.Portal><Menu.Content className="more-menu" align="end" sideOffset={8}>
+                    {tab === 'saved' && <><div className="menu-view-label">보기 방식</div><Menu.RadioGroup className="menu-view-toggle" value={accountView} onValueChange={setAccountView} aria-label="거래처 보기">
+                      <Menu.RadioItem className="menu-view-item" value="board" aria-label="보드 보기"><Columns3 size={16}/><span>보드</span></Menu.RadioItem>
+                      <Menu.RadioItem className="menu-view-item" value="list" aria-label="리스트 보기"><List size={16}/><span>리스트</span></Menu.RadioItem>
+                    </Menu.RadioGroup><Menu.Separator className="more-separator"/></>}
+
 
                     <Menu.Item className="more-item" disabled={!visible.length} onSelect={exportCsv}><Icon name="download" size={15}/> 엑셀 다운로드</Menu.Item>
                   </Menu.Content></Menu.Portal>
