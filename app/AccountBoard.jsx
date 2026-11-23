@@ -3,13 +3,12 @@ import {useEffect, useState} from 'react';
 import {DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, useDroppable, closestCenter, pointerWithin, rectIntersection, DragOverlay} from '@dnd-kit/core';
 import {SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {GripVertical, MapPin, Phone} from 'lucide-react';
+import {MapPin, Phone} from 'lucide-react';
 const stages = ['미접촉','접촉 중','상담 진행','제안·협의','계약 완료','종료'];
 function Card({row, note, open}) {
   const {attributes,listeners,setNodeRef,transform,transition,isDragging} = useSortable({id:row.id});
-  return <article ref={setNodeRef} className="account-card" style={{transform:CSS.Transform.toString(transform),transition,opacity:isDragging?.4:1}}>
-    <button className="card-drag-handle" {...attributes} {...listeners} aria-label={row.name+' 이동'}><GripVertical size={15}/></button>
-    <button className="board-company" onClick={() => open(row)}>{row.name}</button>
+  return <article ref={setNodeRef} className="account-card" {...attributes} {...listeners} aria-label={row.name + ' 이동'} style={{transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.4 : 1}}>
+    <button className="board-company" onClick={() => {if (!isDragging) open(row);}}>{row.name}</button>
     <span className="board-industry">{row.industry}</span>
     <p><MapPin size={13}/>{row.city || row.region}</p><p><Phone size={13}/>{row.phone || '대표전화 미확인'}</p>
     {note && <p className="board-note">{note}</p>}
@@ -18,7 +17,7 @@ function Card({row, note, open}) {
 function Column({stage,rows,saved,open}) {
   const {setNodeRef,isOver}=useDroppable({id:stage});
   return <section ref={setNodeRef} className="board-column" data-over={isOver}><h3><span className="stage-dot"/>{stage}<span className="stage-count">{rows.length}</span></h3>
-    <SortableContext items={rows.map(row=>row.id)} strategy={verticalListSortingStrategy, arrayMove}><div className="board-cards">{rows.map(row=><Card key={row.id} row={row} note={saved[row.id]?.note} open={open}/>)}</div></SortableContext>
+    <SortableContext items={rows.map(row=>row.id)} strategy={verticalListSortingStrategy}><div className="board-cards">{rows.map(row=><Card key={row.id} row={row} note={saved[row.id]?.note} open={open}/>)}</div></SortableContext>
   </section>;
 }
 export default function AccountBoard({rows,saved,open,onError}) {
