@@ -391,3 +391,13 @@
 .selection-action .selection-label{animation:selection-slide 480ms cubic-bezier(.22,1,.36,1)}
 .selection-action .selection-count{display:inline-block;min-width:1ch;font-variant-numeric:tabular-nums;animation:none}
 @media(prefers-reduced-motion:reduce){.list-actions .selection-action{transition:none}.selection-action .selection-label{animation:none}}
+
+.list-search{height:38px}
+.list-search>button{height:32px;width:28px;padding:8px 5px;border-radius:6px}
+.list-actions>button,.list-actions .selection-action{height:36px!important}
+.list-actions .selection-action.has-selection{padding-block:9px}
+.selection-action .selection-count{display:inline-block;height:16px;line-height:16px;overflow:hidden;vertical-align:-3px;min-width:1ch}
+.selection-count .count-reel{display:flex;flex-direction:column;animation:count-roll 420ms cubic-bezier(.22,1,.36,1) forwards}
+.selection-count .count-reel>span{display:block;flex:none;height:16px;line-height:16px;animation:none}
+@keyframes count-roll{from{transform:translateY(0)}to{transform:translateY(-16px)}}
+@media(prefers-reduced-motion:reduce){.selection-count .count-reel{animation:none;transform:translateY(-16px)}}

@@ -31,25 +31,17 @@ function Icon({ name, size = 18 }) {
 }
 
 function SelectionCount({value}) {
-  const [display, setDisplay] = useState(0);
-  const current = useRef(0);
+  const previous = useRef(value);
+  const [numbers, setNumbers] = useState({from:value,to:value});
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      current.current = value;setDisplay(value);return;
-    }
-    const from = current.current;
-    const started = performance.now();
-    let frame;
-    function tick(now) {
-      const progress = Math.min((now - started) / 420, 1);
-      current.current = from + (value - from) * (1 - Math.pow(1 - progress, 3));
-      setDisplay(Math.round(current.current));
-      if (progress < 1) frame = requestAnimationFrame(tick);
-    }
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    setNumbers({from:previous.current,to:value});
+    previous.current = value;
   }, [value]);
-  return <span className="selection-count">{display}</span>;
+  return <span className="selection-count" aria-label={String(value)}>
+    <span key={numbers.to} className="count-reel" aria-hidden="true">
+      <span>{numbers.from}</span><span>{numbers.to}</span>
+    </span>
+  </span>;
 }
 
 export default function Workspace() {
