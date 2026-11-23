@@ -326,9 +326,9 @@ export default function Workspace() {
 
                 <Menu.Root><Menu.Trigger asChild><Button variant="ghost" size="icon" aria-label="더보기"><MoreHorizontal size={18}/></Button></Menu.Trigger>
                   <Menu.Portal><Menu.Content className="more-menu" align="end" sideOffset={8}>
-                    {tab === 'saved' && <><div className="menu-view-label">보기 방식</div><Menu.RadioGroup className="menu-view-toggle" value={accountView} onValueChange={setAccountView} aria-label="거래처 보기">
-                      <Menu.RadioItem className="menu-view-item" value="board" aria-label="보드 보기"><Columns3 size={16}/><span>보드</span></Menu.RadioItem>
-                      <Menu.RadioItem className="menu-view-item" value="list" aria-label="리스트 보기"><List size={16}/><span>리스트</span></Menu.RadioItem>
+                    {tab === 'saved' && <><Menu.RadioGroup className="menu-view-toggle" value={accountView} onValueChange={setAccountView} aria-label="거래처 보기">
+                      <Menu.RadioItem className="menu-view-item" value="board" aria-label="보드 보기"><Columns3 size={16}/></Menu.RadioItem>
+                      <Menu.RadioItem className="menu-view-item" value="list" aria-label="리스트 보기"><List size={16}/></Menu.RadioItem>
                     </Menu.RadioGroup><Menu.Separator className="more-separator"/></>}
 
 
