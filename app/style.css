@@ -384,3 +384,10 @@
 .list-search>button{margin:0;width:26px;min-width:26px;padding:5px}
 .list-search input{min-width:0;flex:1}
 @media(prefers-reduced-motion:reduce){.selection-action .selection-label{animation:none}.list-actions .selection-action{transition:none}}
+
+.list-actions .selection-action{transition:width 480ms cubic-bezier(.22,1,.36,1),background-color 280ms ease}
+.list-actions .selection-action.has-selection{width:118px;min-width:0;padding:6px 8px;background:#171717;color:#fff}
+.list-actions .selection-action.has-selection:hover{background:#292929}
+.selection-action .selection-label{animation:selection-slide 480ms cubic-bezier(.22,1,.36,1)}
+.selection-action .selection-count{display:inline-block;min-width:1ch;font-variant-numeric:tabular-nums;animation:none}
+@media(prefers-reduced-motion:reduce){.list-actions .selection-action{transition:none}.selection-action .selection-label{animation:none}}

@@ -30,6 +30,28 @@ function Icon({ name, size = 18 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={symbols[name]} /></svg>;
 }
 
+function SelectionCount({value}) {
+  const [display, setDisplay] = useState(0);
+  const current = useRef(0);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      current.current = value;setDisplay(value);return;
+    }
+    const from = current.current;
+    const started = performance.now();
+    let frame;
+    function tick(now) {
+      const progress = Math.min((now - started) / 420, 1);
+      current.current = from + (value - from) * (1 - Math.pow(1 - progress, 3));
+      setDisplay(Math.round(current.current));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    }
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return <span className="selection-count">{display}</span>;
+}
+
 export default function Workspace() {
   const [accountView, setAccountView] = useState('board');
   const [tab, setTab] = useState('search');
@@ -300,7 +322,7 @@ export default function Workspace() {
                 <Button className={'selection-action' + (chosen.length ? ' has-selection' : '')} variant={chosen.length ? 'default' : 'ghost'} aria-pressed={selecting} aria-label={chosen.length ? tab === 'search' ? '거래처 추가' : '선택 삭제' : '목록 선택'} disabled={chosen.length ? isDisabled : !visible.length} onClick={async () => {
                   if (!chosen.length) {setSelecting(!selecting);return;}
                   await persist(chosen, tab === 'saved' ? 'remove' : 'add');setSelecting(false);setSelected([]);
-                }}>{chosen.length ? <span className="selection-label" key="action">{chosen.length}개 {tab === 'search' ? '거래처 추가' : '삭제'}</span> : <CheckboxIcon key="icon" size={17}/>}</Button>
+                }}>{chosen.length ? <span className="selection-label" key="action"><SelectionCount value={chosen.length}/>개 {tab === 'search' ? '거래처 추가' : '삭제'}</span> : <CheckboxIcon key="icon" size={17}/>}</Button>
                 <Menu.Root><Menu.Trigger asChild><Button variant="ghost" size="icon" aria-label="더보기"><MoreHorizontal size={18}/></Button></Menu.Trigger>
                   <Menu.Portal><Menu.Content className="more-menu" align="end" sideOffset={8}>
                     {tab === 'saved' && <><Menu.RadioGroup value={accountView} onValueChange={setAccountView}><Menu.RadioItem className="more-item" value="board">보드 보기 <Menu.ItemIndicator>✓</Menu.ItemIndicator></Menu.RadioItem><Menu.RadioItem className="more-item" value="list">리스트 보기 <Menu.ItemIndicator>✓</Menu.ItemIndicator></Menu.RadioItem></Menu.RadioGroup><Menu.Separator className="more-separator"/></>}
