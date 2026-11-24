@@ -1,5 +1,5 @@
 'use client';
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {DndContext, DragOverlay, PointerSensor, useDraggable, useSensor, useSensors} from '@dnd-kit/core';
 import './week-timeline.css';
 
@@ -42,18 +42,20 @@ function EventCard({row, first, name, onOpen, preview, landed, onLand}) {
     title={name + ' · ' + item.time + '–' + clock(minutes(item.time)+lengthOf(item))}
     style={{top:(minutes(item.time)-first*60)*hourHeight/60,height:Math.max(2,lengthOf(item)*hourHeight/60-2),
       left:'calc('+lane/columns*100+'% + 2px)',width:'calc('+100/columns+'% - 4px)'}}
-    onClick={()=>onOpen(item)}>
+    onClick={event=>onOpen(item,event)}>
     <strong>{name}</strong><small>{item.time}–{clock(minutes(item.time)+lengthOf(item))}</small>
   </button>;
 }
 
-export default function WeekTimeline({dates,items,today,name,onSlot,onDay,onOpen,onMove}) {
+export default function WeekTimeline({dates,items,today,name,onSlot,onDay,onOpen,onMove,onSlide}) {
   const body = useRef(null);
   const [active,setActive] = useState(null), [target,setTarget] = useState(null);
   const [landed,setLanded] = useState(null);
   const sensors = useSensors(useSensor(PointerSensor,{activationConstraint:{distance:5}}));
-  const first = Math.min(8,...items.map(item=>Math.floor(minutes(item.time)/60)));
-  const last = Math.max(20,...items.map(item=>Math.ceil((minutes(item.time)+lengthOf(item))/60)));
+  const first = 0;
+  const last = 24;
+  const scroll = useRef(null);
+  useEffect(()=>{scroll.current.scrollTop=8*hourHeight;},[]);
   const hours = Array.from({length:last-first},(_,i)=>first+i);
   const displayed = active && target ? items.map(item=>item.id===active.id?{...item,...target}:item) : items;
   function destination(event) {
@@ -64,15 +66,15 @@ export default function WeekTimeline({dates,items,today,name,onSlot,onDay,onOpen
     const x = box.left + box.width/2 - rect.left, y = box.top - rect.top;
     if (x<0 || x>=rect.width || y < -hourHeight/4 || y>=rect.height) return null;
     const start = Math.max(first*60,Math.min(last*60-lengthOf(item),first*60+Math.round(y/hourHeight*4)*15));
-    return {date:dates[Math.floor(x/rect.width*7)],time:clock(start)};
+    return {date:dates[Math.floor(x/rect.width*dates.length)],time:clock(start)};
   }
   function reset(){setActive(null);setTarget(null);}
   // Keep the draggable mounted in its original column. Render its landing slot independently.
   return <DndContext sensors={sensors} onDragStart={e=>{setLanded(null);setActive(items.find(i=>i.id===e.active.id));}}
     onDragMove={e=>setTarget(destination(e))} onDragCancel={reset}
     onDragEnd={e=>{const dest=destination(e);if(dest){onMove(e.active.id,dest);setLanded(e.active.id);}reset();}}>
-    <div className="timeline-scroll"><div className="timeline-sheet">
-      <div className="timeline-heading"><span>시간</span>{dates.map((date,i)=><button key={date} data-today={today===date} onClick={()=>onDay(date)}>{'월화수목금토일'[i]} <b>{Number(date.slice(-2))}</b></button>)}</div>
+    <div ref={scroll} className="timeline-scroll" onWheel={active ? undefined : onSlide}><div className="timeline-sheet" style={{"--days":dates.length}} data-single={dates.length===1}>
+      <div className="timeline-heading"><span>시간</span>{dates.map((date,i)=><button key={date} data-today={today===date} onClick={()=>onDay(date)}>{'일월화수목금토'[new Date(date+'T12:00:00').getDay()]} <b>{Number(date.slice(-2))}</b></button>)}</div>
       <div className="timeline-main"><div className="timeline-hours">{hours.map(h=><small key={h}>{clock(h*60)}</small>)}</div>
       <div ref={body} className="timeline-days">{dates.map(date=>{
         const rows = pack(displayed.filter(it=>it.date===date));
@@ -84,7 +86,7 @@ export default function WeekTimeline({dates,items,today,name,onSlot,onDay,onOpen
         return <div className="timeline-day" key={date}>
           {hours.map(h=><button className="timeline-slot" key={h} aria-label={date+' '+h+'시 일정 추가'} onClick={e=>{
             const offset=e.detail?e.clientY-e.currentTarget.getBoundingClientRect().top:0;
-            onSlot(date,clock(h*60+15*Math.min(3,Math.max(0,Math.floor(offset/hourHeight*4)))));
+            onSlot(date,clock(h*60+15*Math.min(3,Math.max(0,Math.floor(offset/hourHeight*4)))),e);
           }}/>)}
           {staticRows.map(row=><EventCard key={row.item.id} row={row} first={first} name={name(row.item)}
             onOpen={onOpen} landed={landed===row.item.id} onLand={()=>setLanded(null)} preview={active?.id===row.item.id}/>)}

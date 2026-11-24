@@ -4,7 +4,7 @@ import {Button} from '../components/ui/button';
 import {Input} from '../components/ui/input';
 import {Checkbox} from '../components/ui/checkbox';
 import WeekTimeline, {minutes} from './WeekTimeline';
-import {MapPin,ChevronLeft,ChevronRight,Plus,LocateFixed} from 'lucide-react';
+import {MapPin,ChevronLeft,ChevronRight,LocateFixed} from 'lucide-react';
 const load = (key,fallback) => {try{return JSON.parse(localStorage.getItem(key)) ?? fallback;}catch{return fallback;}};
 const dateKey = date => [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
 export function Nearby({companies,open}) {
@@ -21,29 +21,141 @@ export function Nearby({companies,open}) {
     {error && <p role="status">{error}</p>}<div className="nearby-body map-first"><Button className="map-list-toggle" variant="outline" aria-label="주변 업체 목록" aria-expanded={panel} onClick={()=>setPanel(!panel)}><MapPin size={18}/></Button>{panel && <div className="nearby-list"><p className="muted">{rows.length}개 업체 · 지도 중심 기준</p>{rows.map(row=><button key={row.id} onClick={()=>{map.current?.panTo([row.latitude,row.longitude]);open(row);}}><strong>{row.name}</strong><span>{row.industry}</span><small>{row.city || row.region} · {distance(row).toFixed(1)}km</small></button>)}{!rows.length && <div className="screen-empty"><MapPin size={24}/><strong>주변에 표시할 업체가 없어요</strong><p>{located.length?'지도를 이동하거나 반경을 넓혀보세요.':'위치 좌표가 등록된 업체가 아직 없습니다.'}</p></div>}</div>}<div ref={mapNode} className="nearby-map" aria-label="주변 업체 지도"/></div></section>;
 }
 export function Schedule({saved,open}) {
-  const [month,setMonth]=useState(()=>new Date()),[selected,setSelected]=useState(()=>dateKey(new Date())),[items,setItems]=useState([]),[ready,setReady]=useState(false),[adding,setAdding]=useState(false),[message,setMessage]=useState('');
-  useEffect(()=>{setItems(load('outbounding.schedule',[]));setReady(true);},[]);
-  function update(next){try{localStorage.setItem('outbounding.schedule',JSON.stringify(next));setItems(next);setMessage('');return true;}catch{setMessage('일정을 저장하지 못했습니다.');return false;}}
-  const start=new Date(month);
-  start.setDate(start.getDate()-(start.getDay()+6)%7);
-  const days=Array.from({length:7},(_,i)=>new Date(start.getFullYear(),start.getMonth(),start.getDate()+i));
-  const weekItems=items.filter(item=>days.some(day=>dateKey(day)===item.date));
-  const [agenda,setAgenda]=useState(false);
-  const [editing,setEditing]=useState(null);
-  const [defaultTime,setDefaultTime]=useState('09:00');
-  function stepWeek(amount){const next=new Date(month);next.setDate(next.getDate()+amount*7);setAgenda(false);setMonth(next);setSelected(dateKey(next));}
-  return <section className="schedule-screen"><div className="screen-toolbar"><h1>{month.getFullYear()}년 {month.getMonth()+1}월</h1><Button variant="outline" onClick={()=>{setAgenda(false);setMonth(new Date());setSelected(dateKey(new Date()));}}>오늘</Button><Button variant="ghost" size="icon" aria-label="이전 주" onClick={()=>stepWeek(-1)}><ChevronLeft size={16}/></Button><Button variant="ghost" size="icon" aria-label="다음 주" onClick={()=>stepWeek(1)}><ChevronRight size={16}/></Button><Button className="toolbar-end" onClick={()=>{setEditing(null);setAdding(true);setAgenda(true);}}><Plus size={15}/>일정 추가</Button></div>
-    {message && <p role="status">{message}</p>}<div className="week-layout"><WeekTimeline dates={days.map(dateKey)} items={weekItems} today={dateKey(new Date())}
-      name={item=>saved[item.company]?.company.name || '삭제된 거래처'}
-      onSlot={(date,time)=>{setSelected(date);setDefaultTime(time);setEditing(null);setAgenda(true);setAdding(true);}}
-      onDay={date=>{setSelected(date);setAdding(false);setAgenda(true);}}
-      onOpen={item=>{setSelected(item.date);setDefaultTime(item.time);setEditing(item);setAdding(true);setAgenda(true);}}
-      onMove={(id,destination)=>update(items.map(item=>item.id===id?{...item,...destination}:item))}/>
-    {agenda && <aside className="day-agenda"><Button className="agenda-close" variant="ghost" onClick={()=>{setAgenda(false);setAdding(false);}}>닫기</Button><h2>{selected}</h2>{adding && <form key={editing?.id || selected+defaultTime} onSubmit={e=>{e.preventDefault();const data=new FormData(e.currentTarget);const time=data.get('time'),duration=Number(data.get('duration'));
-      if(minutes(time)+duration>1440){setMessage('일정이 자정을 넘지 않도록 시간을 조정해 주세요.');return;}
-      const entry={id:editing?.id || crypto.randomUUID(),done:editing?.done || false,date:data.get('date'),company:data.get('company'),time,duration,memo:data.get('memo')};
-      if(!update(editing?items.map(item=>item.id===editing.id?entry:item):[...items,entry]))return;setMonth(new Date(entry.date+"T12:00:00"));setSelected(entry.date);setAdding(false);}}><label>날짜<Input type="date" name="date" defaultValue={selected} required/></label><label>거래처<select name="company" defaultValue={editing?.company || ""} required><option value="">거래처 선택</option>{Object.values(saved).map(({company})=><option key={company.id} value={company.id}>{company.name}</option>)}</select></label><label>시간<Input name="time" type="time" defaultValue={defaultTime} required/></label><label>소요 시간<select name="duration" defaultValue={editing?.duration || 30}>{[15,30,45,60,90,120].map(n=><option key={n} value={n}>{n}분</option>)}</select></label><label>메모<Input defaultValue={editing?.memo || ""} name="memo" maxLength={200}/></label><Button disabled={!ready || !Object.keys(saved).length}>{editing?'저장':'추가'}</Button></form>}
-    {!items.some(item=>item.date===selected) && <p className="muted">등록된 연락 일정이 없습니다.</p>}{items.filter(item=>item.date===selected).sort((a,b)=>a.time.localeCompare(b.time)).map(item=><div className="agenda-item" key={item.id}><Checkbox aria-label="연락 완료" checked={item.done} onCheckedChange={done=>update(items.map(value=>value.id===item.id?{...value,done:done===true}:value))}/><div><small>{item.time}</small><button onClick={()=>saved[item.company] && open(saved[item.company].company)}>{saved[item.company]?.company.name || '삭제된 거래처'}</button><p>{item.memo}</p></div><Button variant="ghost" size="sm" onClick={()=>update(items.filter(value=>value.id!==item.id))}>삭제</Button></div>)}</aside>}</div></section>;
+  const [period,setPeriod]=useState('week');
+  const [date,setDate]=useState(()=>new Date());
+  const [items,setItems]=useState([]);
+  const [popup,setPopup]=useState(null);
+  const [message,setMessage]=useState('');
+  const lastSlide=useRef(0);
+  const touchStart=useRef(null);
+  useEffect(()=>setItems(load('outbounding.schedule',[])),[]);
+  function update(next){
+    try {
+      localStorage.setItem('outbounding.schedule',JSON.stringify(next));
+      setItems(next);
+      setMessage('');
+      return true;
+    } catch {
+      setMessage('일정을 저장하지 못했습니다.');
+      return false;
+    }
+  }
+  function step(amount){
+    setPopup(null);
+    setDate(current=>{
+      const next=new Date(current);
+      if(period==='month') return new Date(next.getFullYear(),next.getMonth()+amount,1);
+      next.setDate(next.getDate()+amount*(period==='week'?7:1));
+      return next;
+    });
+  }
+  function slide(event){
+    if(Math.abs(event.deltaX)<12 || Math.abs(event.deltaX)<=Math.abs(event.deltaY))return;
+    if(event.currentTarget.scrollWidth>event.currentTarget.clientWidth){
+      const {scrollLeft,scrollWidth,clientWidth}=event.currentTarget;
+      if(event.deltaX<0?scrollLeft>1:scrollLeft+clientWidth<scrollWidth-1)return;
+    }
+    if(Date.now()-lastSlide.current<420)return;
+    lastSlide.current=Date.now();
+    step(Math.sign(event.deltaX));
+  }
+  function show(day,time,event,item=null){
+    const bounds=event.currentTarget.getBoundingClientRect();
+    const x=event.detail?event.clientX:bounds.right;
+    const y=event.detail?event.clientY:bounds.top;
+    setMessage('');
+    setPopup({day,time,item,x:Math.max(8,Math.min(x+10,window.innerWidth-316)),y:Math.max(8,Math.min(y+8,window.innerHeight-390))});
+  }
+  const first=period==='month'?new Date(date.getFullYear(),date.getMonth(),1):new Date(date);
+  if(period!=='day')first.setDate(first.getDate()-(first.getDay()+6)%7);
+  const days=Array.from({length:period==='month'?42:period==='week'?7:1},(_,index)=>{
+    const day=new Date(first);
+    day.setDate(day.getDate()+index);
+    return day;
+  });
+  const keys=days.map(dateKey);
+  const visible=items.filter(item=>keys.includes(item.date));
+  const today=dateKey(new Date());
+  const name=item=>saved[item.company]?.company.name || '삭제된 거래처';
+  const editing=popup?.item;
+  function submit(event){
+    event.preventDefault();
+    const data=new FormData(event.currentTarget);
+    const time=data.get('time'),duration=Number(data.get('duration'));
+    if(minutes(time)+duration>1440){setMessage('일정이 자정을 넘지 않도록 시간을 조정해 주세요.');return;}
+    const entry={...editing,id:editing?.id || crypto.randomUUID(),done:editing?.done || false,date:data.get('date'),company:data.get('company'),time,duration,memo:data.get('memo')};
+    if(update(editing?items.map(item=>item.id===editing.id?entry:item):[...items,entry])){
+      if(!keys.includes(entry.date))setDate(new Date(entry.date+'T12:00:00'));
+      setPopup(null);
+    }
+  }
+  return <section className="schedule-screen">
+    <div className="screen-toolbar calendar-toolbar">
+      <h1>{date.getFullYear()}년 {date.getMonth()+1}월</h1>
+      <div>
+        <Button variant="ghost" size="icon" aria-label="이전 기간" onClick={()=>step(-1)}><ChevronLeft size={16}/></Button>
+        <Button variant="ghost" size="icon" aria-label="다음 기간" onClick={()=>step(1)}><ChevronRight size={16}/></Button>
+        <Button variant="outline" onClick={()=>{setPopup(null);setDate(new Date());}}>오늘</Button>
+        <select aria-label="캘린더 보기" value={period} onChange={event=>{setPopup(null);setPeriod(event.target.value);}}>
+          <option value="day">1일</option><option value="week">1주</option><option value="month">1달</option>
+        </select>
+      </div>
+    </div>
+    {!popup && message && <p role="alert">{message}</p>}
+    <div className="calendar-gesture" onTouchStart={event=>{
+      const point=event.touches[0];
+      touchStart.current=event.target.closest('.timeline-event, .calendar-month-event')?null:[point.clientX,point.clientY];
+    }} onTouchEnd={event=>{
+      const start=touchStart.current;
+      touchStart.current=null;
+      if(!start)return;
+      const point=event.changedTouches[0], dx=start[0]-point.clientX;
+      if(Math.abs(dx)>70 && Math.abs(dx)>Math.abs(start[1]-point.clientY)*1.5){
+        const scroll=event.target.closest('.timeline-scroll');
+        if(scroll && (dx>0?scroll.scrollLeft+scroll.clientWidth<scroll.scrollWidth-1:scroll.scrollLeft>1))return;
+        step(Math.sign(dx));
+      }
+    }}>
+    {period==='month'?<div className="calendar-month" onWheel={slide}>
+      {[...'월화수목금토일'].map(day=><span className="calendar-weekday" key={day}>{day}</span>)}
+      {days.map((day,index)=>{
+        const key=keys[index];
+        return <div className="calendar-month-day" key={key} data-outside={day.getMonth()!==date.getMonth()}>
+          <button className="calendar-date-hit" aria-label={key+' 일정 등록'} onClick={event=>show(key,'09:00',event)}><b data-today={key===today}>{day.getDate()}</b></button>
+          {visible.filter(item=>item.date===key).sort((a,b)=>a.time.localeCompare(b.time)).map(item=>
+            <button className="calendar-month-event" key={item.id} data-done={item.done} onClick={event=>show(key,item.time,event,item)}>{item.time} {name(item)}</button>
+          )}
+        </div>;
+      })}
+    </div>:<WeekTimeline dates={keys} items={visible} today={today} name={name} onSlide={slide}
+      onSlot={show} onDay={day=>{setDate(new Date(day+'T12:00:00'));setPeriod('day');}}
+      onOpen={(item,event)=>show(item.date,item.time,event,item)}
+      onMove={(id,destination)=>update(items.map(item=>item.id===id?{...item,...destination}:item))}/>}
+    </div>
+    {popup && <div className="calendar-popup-layer" onClick={()=>setPopup(null)}>
+      <form key={editing?.id || popup.day+popup.time} className="calendar-popup" role="dialog" aria-label={editing?'일정 수정':'일정 등록'} style={{left:popup.x,top:popup.y}}
+        onClick={event=>event.stopPropagation()} onKeyDown={event=>{if(event.key==='Escape')setPopup(null);}} onSubmit={submit}>
+        <header><strong>{editing?'일정 수정':'일정 등록'}</strong><Button type="button" variant="ghost" size="sm" onClick={()=>setPopup(null)}>닫기</Button></header>
+        <label>거래처<select autoFocus name="company" defaultValue={editing?.company || ''} required>
+          <option value="">거래처 선택</option>
+          {editing && !saved[editing.company] && <option value={editing.company}>삭제된 거래처</option>}
+          {Object.values(saved).map(({company})=><option key={company.id} value={company.id}>{company.name}</option>)}
+        </select></label>
+        <div className="calendar-form-row"><label>날짜<Input type="date" name="date" defaultValue={popup.day} required/></label>
+        <label>시간 (24시간)<Input name="time" placeholder="09:00" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" maxLength={5} defaultValue={popup.time} required/></label></div>
+        <label>소요 시간<select name="duration" defaultValue={editing?.duration || 30}>{[15,30,45,60,90,120].map(n=><option key={n} value={n}>{n}분</option>)}</select></label>
+        <label>메모<Input defaultValue={editing?.memo || ''} name="memo" maxLength={200}/></label>
+        {editing && <div className="calendar-form-actions">
+          <label><Checkbox checked={editing.done} onCheckedChange={done=>{const item={...editing,done:done===true};if(update(items.map(value=>value.id===item.id?item:value)))setPopup({...popup,item});}}/>연락 완료</label>
+          {saved[editing.company] && <Button type="button" variant="ghost" size="sm" onClick={()=>{setPopup(null);open(saved[editing.company].company);}}>거래처</Button>}
+          <Button type="button" variant="ghost" size="sm" onClick={()=>{if(update(items.filter(item=>item.id!==editing.id)))setPopup(null);}}>삭제</Button>
+        </div>}
+        {!editing && !Object.keys(saved).length && <small>내 거래처에 업체를 먼저 추가해 주세요.</small>}
+        {message && <small role="alert">{message}</small>}
+        <Button disabled={!editing && !Object.keys(saved).length}>저장</Button>
+      </form>
+    </div>}
+  </section>;
 }
 export function Settings({user,count}) {
   const [compact,setCompact]=useState(false);
