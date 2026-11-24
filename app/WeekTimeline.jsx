@@ -33,23 +33,61 @@ export function pack(items) {
   return result;
 }
 
-function EventCard({row, first, name, onOpen, preview, landed, onLand}) {
+function EventCard({row, first, name, onOpen, preview, landed, onLand, onResize, resize}) {
   const {item,lane,columns} = row;
   const drag = useDraggable({id:item.id});
+  const gesture = useRef(null);
+  function resizeHandle(edge){
+    return <span className="timeline-resize" data-edge={edge} aria-hidden="true"
+      onClick={event=>event.stopPropagation()}
+      onPointerDown={event=>{
+        if(event.button!==0)return;
+        event.stopPropagation();
+        event.preventDefault();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        gesture.current={y:event.clientY,edge};
+      }}
+      onPointerMove={event=>{
+        if(!gesture.current)return;
+        const delta=Math.round((event.clientY-gesture.current.y)/hourHeight*4)*15;
+        onResize(item,edge,delta,false);
+      }}
+      onLostPointerCapture={()=>{if(gesture.current){gesture.current=null;onResize(item,null,0,false);}}}
+      onPointerUp={event=>{
+        if(!gesture.current)return;
+        const delta=Math.round((event.clientY-gesture.current.y)/hourHeight*4)*15;
+        gesture.current=null;
+        onResize(item,edge,delta,true);
+      }}/>;
+  }
+  const shown = resize?.id===item.id ? {...item,...resize} : item;
   const color = [...String(item.company)].reduce((n,c) => n + c.charCodeAt(0),0) % 4;
   return <button ref={drag.setNodeRef} {...drag.attributes} {...drag.listeners}
-    className="timeline-event" data-tone={color} data-done={item.done} data-preview={preview} data-landed={landed} onAnimationEnd={landed ? onLand : undefined}
+    className="timeline-event" data-resizing={resize?.id===item.id} data-tone={color} data-done={item.done} data-preview={preview} data-landed={landed} onAnimationEnd={landed ? onLand : undefined}
     title={name + ' · ' + item.time + '–' + clock(minutes(item.time)+lengthOf(item))}
-    style={{top:(minutes(item.time)-first*60)*hourHeight/60,height:Math.max(2,lengthOf(item)*hourHeight/60-2),
+    style={{top:(minutes(shown.time)-first*60)*hourHeight/60,height:Math.max(2,lengthOf(shown)*hourHeight/60-2),
       left:'calc('+lane/columns*100+'% + 2px)',width:'calc('+100/columns+'% - 4px)'}}
     onClick={event=>onOpen(item,event)}>
-    <strong>{name}</strong><small>{item.time}–{clock(minutes(item.time)+lengthOf(item))}</small>
+    <strong>{name}</strong><small>{shown.time}–{clock(minutes(shown.time)+lengthOf(shown))}</small>{resizeHandle("start")}{resizeHandle("end")}
   </button>;
 }
 
 export default function WeekTimeline({dates,items,today,name,onSlot,onDay,onOpen,onMove,onSlide}) {
   const body = useRef(null);
   const [active,setActive] = useState(null), [target,setTarget] = useState(null);
+  const [resize,setResize] = useState(null);
+  function adjust(item,edge,delta,commit){
+    if(!edge){setResize(null);return;}
+    const start=minutes(item.time), end=start+lengthOf(item);
+    const minLength=Math.min(15,end-start);
+    const nextStart=edge==='start' && delta ? Math.max(0,Math.min(end-minLength,Math.round((start+delta)/15)*15)) : start;
+    const nextEnd=edge==='end' && delta ? Math.min(1440,Math.max(start+minLength,Math.round((end+delta)/15)*15)) : end;
+    const changes={time:clock(nextStart),duration:nextEnd-nextStart};
+    if(commit){
+      if(delta)onMove(item.id,changes);
+      setResize(null);
+    }else setResize({id:item.id,...changes});
+  }
   const [landed,setLanded] = useState(null);
   const sensors = useSensors(useSensor(PointerSensor,{activationConstraint:{distance:5}}));
   const first = 0;
@@ -89,7 +127,7 @@ export default function WeekTimeline({dates,items,today,name,onSlot,onDay,onOpen
             onSlot(date,clock(h*60+15*Math.min(3,Math.max(0,Math.floor(offset/hourHeight*4)))),e);
           }}/>)}
           {staticRows.map(row=><EventCard key={row.item.id} row={row} first={first} name={name(row.item)}
-            onOpen={onOpen} landed={landed===row.item.id} onLand={()=>setLanded(null)} preview={active?.id===row.item.id}/>)}
+            onOpen={onOpen} resize={resize} onResize={adjust} landed={landed===row.item.id} onLand={()=>setLanded(null)} preview={active?.id===row.item.id}/>)}
           {target && landing && <div className="timeline-target" style={{
             top:(minutes(landing.item.time)-first*60)*hourHeight/60,
             height:lengthOf(landing.item)*hourHeight/60-2,

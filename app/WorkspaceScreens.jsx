@@ -3,7 +3,12 @@ import {useEffect,useRef,useState} from 'react';
 import {Button} from '../components/ui/button';
 import {Input} from '../components/ui/input';
 import {Checkbox} from '../components/ui/checkbox';
-import WeekTimeline, {minutes} from './WeekTimeline';
+import WeekTimeline, {clock, minutes} from './WeekTimeline';
+import {Calendar} from '../components/ui/calendar';
+import {Popover,PopoverTrigger,PopoverContent} from '../components/ui/popover';
+import {Select,SelectTrigger,SelectValue,SelectContent,SelectItem} from '../components/ui/select';
+import {DndContext,DragOverlay,PointerSensor,pointerWithin,useDraggable,useDroppable,useSensor,useSensors} from '@dnd-kit/core';
+import {ko} from 'react-day-picker/locale';
 import {MapPin,ChevronLeft,ChevronRight,LocateFixed} from 'lucide-react';
 const load = (key,fallback) => {try{return JSON.parse(localStorage.getItem(key)) ?? fallback;}catch{return fallback;}};
 const dateKey = date => [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
@@ -20,12 +25,37 @@ export function Nearby({companies,open}) {
   return <section className="nearby-screen"><div className="screen-toolbar"><h1>주변 업체</h1><Input aria-label="주변 업체명 검색" placeholder="업체명 검색" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="조회 반경" value={radius} onChange={e=>setRadius(Number(e.target.value))}>{[1,3,5,10,20].map(n=><option key={n} value={n}>{n}km</option>)}</select><Button variant="outline" onClick={locate}><LocateFixed size={14}/>현재 위치</Button></div>
     {error && <p role="status">{error}</p>}<div className="nearby-body map-first"><Button className="map-list-toggle" variant="outline" aria-label="주변 업체 목록" aria-expanded={panel} onClick={()=>setPanel(!panel)}><MapPin size={18}/></Button>{panel && <div className="nearby-list"><p className="muted">{rows.length}개 업체 · 지도 중심 기준</p>{rows.map(row=><button key={row.id} onClick={()=>{map.current?.panTo([row.latitude,row.longitude]);open(row);}}><strong>{row.name}</strong><span>{row.industry}</span><small>{row.city || row.region} · {distance(row).toFixed(1)}km</small></button>)}{!rows.length && <div className="screen-empty"><MapPin size={24}/><strong>주변에 표시할 업체가 없어요</strong><p>{located.length?'지도를 이동하거나 반경을 넓혀보세요.':'위치 좌표가 등록된 업체가 아직 없습니다.'}</p></div>}</div>}<div ref={mapNode} className="nearby-map" aria-label="주변 업체 지도"/></div></section>;
 }
-export function Schedule({saved,open}) {
+function CalendarSelect({label,options,...props}){
+  return <Select {...props}>
+    <SelectTrigger className="h-9" aria-label={label}><SelectValue placeholder={label}/></SelectTrigger>
+    <SelectContent>{options.map(([value,text])=><SelectItem key={value} value={String(value)}>{text}</SelectItem>)}</SelectContent>
+  </Select>;
+}
+
+function MonthEvent({item,name,onOpen}){
+  const drag=useDraggable({id:item.id,data:{item}});
+  return <button ref={drag.setNodeRef} {...drag.attributes} {...drag.listeners}
+    className="calendar-month-event" data-done={item.done} data-dragging={drag.isDragging}
+    onClick={event=>onOpen(event,item)}>{item.time} {name(item)}</button>;
+}
+
+function MonthDay({day,dayKey,outside,today,items,name,show}){
+  const drop=useDroppable({id:dayKey});
+  return <div ref={drop.setNodeRef} className="calendar-month-day" data-outside={outside} data-over={drop.isOver}>
+    <button className="calendar-date-hit" aria-label={dayKey+' 일정 등록'} onClick={event=>show(dayKey,'09:00',event)}><b data-today={dayKey===today}>{day.getDate()}</b></button>
+    {items.map(item=><MonthEvent key={item.id} item={item} name={name} onOpen={(event,value)=>show(dayKey,value.time,event,value)}/>)}
+  </div>;
+}
+
+export function Schedule({saved}) {
   const [period,setPeriod]=useState('week');
   const [date,setDate]=useState(()=>new Date());
   const [items,setItems]=useState([]);
   const [popup,setPopup]=useState(null);
   const [message,setMessage]=useState('');
+  const [dragged,setDragged]=useState(null);
+  const [datePicker,setDatePicker]=useState(false);
+  const monthSensors=useSensors(useSensor(PointerSensor,{activationConstraint:{distance:5}}));
   const lastSlide=useRef(0);
   const touchStart=useRef(null);
   useEffect(()=>setItems(load('outbounding.schedule',[])),[]);
@@ -64,6 +94,7 @@ export function Schedule({saved,open}) {
     const x=event.detail?event.clientX:bounds.right;
     const y=event.detail?event.clientY:bounds.top;
     setMessage('');
+    setDatePicker(false);
     setPopup({day,time,item,x:Math.max(8,Math.min(x+10,window.innerWidth-316)),y:Math.max(8,Math.min(y+8,window.innerHeight-390))});
   }
   const first=period==='month'?new Date(date.getFullYear(),date.getMonth(),1):new Date(date);
@@ -96,9 +127,8 @@ export function Schedule({saved,open}) {
         <Button variant="ghost" size="icon" aria-label="이전 기간" onClick={()=>step(-1)}><ChevronLeft size={16}/></Button>
         <Button variant="ghost" size="icon" aria-label="다음 기간" onClick={()=>step(1)}><ChevronRight size={16}/></Button>
         <Button variant="outline" onClick={()=>{setPopup(null);setDate(new Date());}}>오늘</Button>
-        <select aria-label="캘린더 보기" value={period} onChange={event=>{setPopup(null);setPeriod(event.target.value);}}>
-          <option value="day">1일</option><option value="week">1주</option><option value="month">1달</option>
-        </select>
+        <CalendarSelect label="캘린더 보기" value={period} options={[['day','1일'],['week','1주'],['month','1달']]}
+          onValueChange={value=>{setPopup(null);setPeriod(value);}}/>
       </div>
     </div>
     {!popup && message && <p role="alert">{message}</p>}
@@ -116,43 +146,55 @@ export function Schedule({saved,open}) {
         step(Math.sign(dx));
       }
     }}>
-    {period==='month'?<div className="calendar-month" onWheel={slide}>
-      {[...'월화수목금토일'].map(day=><span className="calendar-weekday" key={day}>{day}</span>)}
-      {days.map((day,index)=>{
-        const key=keys[index];
-        return <div className="calendar-month-day" key={key} data-outside={day.getMonth()!==date.getMonth()}>
-          <button className="calendar-date-hit" aria-label={key+' 일정 등록'} onClick={event=>show(key,'09:00',event)}><b data-today={key===today}>{day.getDate()}</b></button>
-          {visible.filter(item=>item.date===key).sort((a,b)=>a.time.localeCompare(b.time)).map(item=>
-            <button className="calendar-month-event" key={item.id} data-done={item.done} onClick={event=>show(key,item.time,event,item)}>{item.time} {name(item)}</button>
-          )}
-        </div>;
-      })}
-    </div>:<WeekTimeline dates={keys} items={visible} today={today} name={name} onSlide={slide}
+    {period==='month'?<DndContext sensors={monthSensors} collisionDetection={pointerWithin}
+      onDragStart={event=>setDragged(event.active.data.current.item)} onDragCancel={()=>setDragged(null)}
+      onDragEnd={({active,over})=>{
+        if(over && over.id!==active.data.current.item.date) update(items.map(item=>item.id===active.id?{...item,date:over.id}:item));
+        setDragged(null);
+      }}>
+      <div className="calendar-month" onWheel={dragged?undefined:slide}>
+        {[...'월화수목금토일'].map(day=><span className="calendar-weekday" key={day}>{day}</span>)}
+        {days.map((day,index)=><MonthDay key={keys[index]} dayKey={keys[index]} day={day} today={today}
+          outside={day.getMonth()!==date.getMonth()} name={name} show={show}
+          items={visible.filter(item=>item.date===keys[index]).sort((a,b)=>a.time.localeCompare(b.time))}/>)}
+      </div>
+      <DragOverlay>{dragged && <div className="calendar-month-event">{dragged.time} {name(dragged)}</div>}</DragOverlay>
+    </DndContext>:<WeekTimeline dates={keys} items={visible} today={today} name={name} onSlide={slide}
       onSlot={show} onDay={day=>{setDate(new Date(day+'T12:00:00'));setPeriod('day');}}
       onOpen={(item,event)=>show(item.date,item.time,event,item)}
       onMove={(id,destination)=>update(items.map(item=>item.id===id?{...item,...destination}:item))}/>}
     </div>
     {popup && <div className="calendar-popup-layer" onClick={()=>setPopup(null)}>
-      <form key={editing?.id || popup.day+popup.time} className="calendar-popup" role="dialog" aria-label={editing?'일정 수정':'일정 등록'} style={{left:popup.x,top:popup.y}}
+      <form key={editing?.id || popup.time} className="calendar-popup" role="dialog" aria-label={editing?'일정 수정':'일정 등록'} style={{left:popup.x,top:popup.y}}
         onClick={event=>event.stopPropagation()} onKeyDown={event=>{if(event.key==='Escape')setPopup(null);}} onSubmit={submit}>
         <header><strong>{editing?'일정 수정':'일정 등록'}</strong><Button type="button" variant="ghost" size="sm" onClick={()=>setPopup(null)}>닫기</Button></header>
-        <label>거래처<select autoFocus name="company" defaultValue={editing?.company || ''} required>
-          <option value="">거래처 선택</option>
-          {editing && !saved[editing.company] && <option value={editing.company}>삭제된 거래처</option>}
-          {Object.values(saved).map(({company})=><option key={company.id} value={company.id}>{company.name}</option>)}
-        </select></label>
-        <div className="calendar-form-row"><label>날짜<Input type="date" name="date" defaultValue={popup.day} required/></label>
-        <label>시간 (24시간)<Input name="time" placeholder="09:00" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" maxLength={5} defaultValue={popup.time} required/></label></div>
-        <label>소요 시간<select name="duration" defaultValue={editing?.duration || 30}>{[15,30,45,60,90,120].map(n=><option key={n} value={n}>{n}분</option>)}</select></label>
+        <label>거래처</label>
+        <CalendarSelect label="거래처 선택" name="company" defaultValue={editing?.company} required
+          options={[...(editing && !saved[editing.company] ? [[editing.company,'삭제된 거래처']] : []),
+            ...Object.values(saved).map(({company})=>[company.id,company.name])]}/>
+        <div className="calendar-form-row">
+          <div><label>날짜</label><input type="hidden" name="date" value={popup.day}/>
+            <Popover open={datePicker} onOpenChange={setDatePicker}>
+              <PopoverTrigger asChild><Button type="button" variant="outline" className="w-full">{popup.day}</Button></PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" locale={ko} defaultMonth={new Date(popup.day+'T12:00:00')}
+                  selected={new Date(popup.day+'T12:00:00')} onSelect={day=>{if(day)setPopup({...popup,day:dateKey(day)});setDatePicker(false);}}/>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div><label>시간</label><CalendarSelect label="시간" name="time" defaultValue={popup.time}
+            options={[...new Set([...Array.from({length:96},(_,i)=>clock(i*15)),popup.time])].sort().map(time=>[time,time])}/></div>
+        </div>
+        <label>소요 시간</label>
+        <CalendarSelect label="소요 시간" name="duration" defaultValue={String(editing?.duration || 30)}
+          options={[...new Set([...Array.from({length:96},(_,i)=>(i+1)*15),editing?.duration || 30])].sort((a,b)=>a-b).map(value=>[value,value+'분'])}/>
         <label>메모<Input defaultValue={editing?.memo || ''} name="memo" maxLength={200}/></label>
-        {editing && <div className="calendar-form-actions">
-          <label><Checkbox checked={editing.done} onCheckedChange={done=>{const item={...editing,done:done===true};if(update(items.map(value=>value.id===item.id?item:value)))setPopup({...popup,item});}}/>연락 완료</label>
-          {saved[editing.company] && <Button type="button" variant="ghost" size="sm" onClick={()=>{setPopup(null);open(saved[editing.company].company);}}>거래처</Button>}
-          <Button type="button" variant="ghost" size="sm" onClick={()=>{if(update(items.filter(item=>item.id!==editing.id)))setPopup(null);}}>삭제</Button>
-        </div>}
         {!editing && !Object.keys(saved).length && <small>내 거래처에 업체를 먼저 추가해 주세요.</small>}
         {message && <small role="alert">{message}</small>}
-        <Button disabled={!editing && !Object.keys(saved).length}>저장</Button>
+        <footer className="calendar-form-actions">
+          {editing && <Button type="button" variant="outline" className="calendar-delete" onClick={()=>{if(update(items.filter(item=>item.id!==editing.id)))setPopup(null);}}>삭제</Button>}
+          <Button className="ml-auto" disabled={!editing && !Object.keys(saved).length}>저장</Button>
+        </footer>
       </form>
     </div>}
   </section>;
