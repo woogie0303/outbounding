@@ -12,18 +12,41 @@ import {ko} from 'react-day-picker/locale';
 import {MapPin,ChevronLeft,ChevronRight,LocateFixed} from 'lucide-react';
 const load = (key,fallback) => {try{return JSON.parse(localStorage.getItem(key)) ?? fallback;}catch{return fallback;}};
 const dateKey = date => [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
-export function Nearby({companies,open}) {
+export function Nearby({db,open}) {
   const mapNode=useRef(null), map=useRef(null), markers=useRef(null);
   const [center,setCenter]=useState([37.5665,126.978]),[radius,setRadius]=useState(5),[query,setQuery]=useState(''),[error,setError]=useState(''),[mapReady,setMapReady]=useState(false);
+  const [position,setPosition]=useState(null);
+  const [companies,setCompanies]=useState([]);
+  const [mapError,setMapError]=useState('');
   const [panel,setPanel]=useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      const latitudeSpan = radius / 110;
+      const longitudeSpan = latitudeSpan / Math.max(0.01, Math.cos(center[0] * Math.PI / 180));
+      const { data, error: requestError } = await db.from('company_locations')
+        .select('latitude,longitude,companies!inner(*)')
+        .gte('latitude', center[0] - latitudeSpan).lte('latitude', center[0] + latitudeSpan)
+        .gte('longitude', center[1] - longitudeSpan).lte('longitude', center[1] + longitudeSpan)
+        .or('data_month.is.null,and(snapshot_present.eq.true,pension_status.eq.1)', { referencedTable: 'companies' })
+        .order('company_id').limit(500).abortSignal(controller.signal);
+      if (controller.signal.aborted) return;
+      setMapError(requestError ? '주변 업체를 불러오지 못했습니다.' : '');
+      setCompanies((data ?? []).map(({latitude,longitude,companies:company}) => ({...company,latitude,longitude})));
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [db, center, radius]);
   const located=companies.filter(row=>Number.isFinite(Number(row.latitude)) && row.latitude != null && Number.isFinite(Number(row.longitude)) && row.longitude != null);
   const distance=row=>{const r=Math.PI/180;const a=Math.sin((Number(row.latitude)-center[0])*r/2)**2+Math.cos(center[0]*r)*Math.cos(Number(row.latitude)*r)*Math.sin((Number(row.longitude)-center[1])*r/2)**2;return 6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));};
   const rows=located.filter(row=>distance(row)<=radius && row.name.includes(query)).sort((a,b)=>distance(a)-distance(b));
   useEffect(()=>{let active=true;import('leaflet').then(L=>{if(!active)return;const instance=L.map(mapNode.current).setView(center,12);map.current=instance;L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(instance);markers.current=L.layerGroup().addTo(instance);setMapReady(true);instance.on('moveend',()=>{const c=instance.getCenter();setCenter([c.lat,c.lng]);});});return()=>{active=false;map.current?.remove();map.current=null;};},[]);
-  useEffect(()=>{if(!map.current || !markers.current)return;import('leaflet').then(L=>{markers.current?.clearLayers();for(const row of rows)L.circleMarker([Number(row.latitude),Number(row.longitude)],{radius:7,color:'#fff',weight:2,fillColor:'#222',fillOpacity:1}).addTo(markers.current).bindTooltip(row.name).on('click',()=>setPanel(true));});},[center,radius,query,companies,mapReady]);
-  function locate(){navigator.geolocation?.getCurrentPosition(position=>{map.current?.setView([position.coords.latitude,position.coords.longitude],14);setError('');},()=>setError('위치 권한을 확인해 주세요. 지도를 이동해서도 검색할 수 있습니다.'));}
+  useEffect(()=>{if(!map.current || !markers.current)return;import('leaflet').then(L=>{if(!markers.current || !map.current)return;markers.current.clearLayers();if(position)L.circleMarker(position,{radius:9,color:'#fff',fillColor:'#2563eb',fillOpacity:1,weight:3}).addTo(markers.current).bindTooltip('내 위치');for(const row of rows)L.circleMarker([Number(row.latitude),Number(row.longitude)],{radius:7,color:'#fff',weight:2,fillColor:'#222',fillOpacity:1}).addTo(markers.current).bindTooltip(document.createTextNode(row.name).textContent.replaceAll('&','&amp;').replaceAll('<','&lt;')).on('click',()=>open(row));});},[center,radius,query,companies,mapReady,position]);
+  function locate(){
+    if (!navigator.geolocation) { setError('이 브라우저에서 현재 위치를 사용할 수 없습니다.'); return; }
+    navigator.geolocation.getCurrentPosition(position=>{setPosition([position.coords.latitude,position.coords.longitude]);map.current?.setView([position.coords.latitude,position.coords.longitude],14);setError('');},()=>setError('위치 권한을 확인해 주세요. 지도를 이동해서도 검색할 수 있습니다.'));
+  }
   return <section className="nearby-screen"><div className="screen-toolbar"><h1>주변 업체</h1><Input aria-label="주변 업체명 검색" placeholder="업체명 검색" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="조회 반경" value={radius} onChange={e=>setRadius(Number(e.target.value))}>{[1,3,5,10,20].map(n=><option key={n} value={n}>{n}km</option>)}</select><Button variant="outline" onClick={locate}><LocateFixed size={14}/>현재 위치</Button></div>
-    {error && <p role="status">{error}</p>}<div className="nearby-body map-first"><Button className="map-list-toggle" variant="outline" aria-label="주변 업체 목록" aria-expanded={panel} onClick={()=>setPanel(!panel)}><MapPin size={18}/></Button>{panel && <div className="nearby-list"><p className="muted">{rows.length}개 업체 · 지도 중심 기준</p>{rows.map(row=><button key={row.id} onClick={()=>{map.current?.panTo([row.latitude,row.longitude]);open(row);}}><strong>{row.name}</strong><span>{row.industry}</span><small>{row.city || row.region} · {distance(row).toFixed(1)}km</small></button>)}{!rows.length && <div className="screen-empty"><MapPin size={24}/><strong>주변에 표시할 업체가 없어요</strong><p>{located.length?'지도를 이동하거나 반경을 넓혀보세요.':'위치 좌표가 등록된 업체가 아직 없습니다.'}</p></div>}</div>}<div ref={mapNode} className="nearby-map" aria-label="주변 업체 지도"/></div></section>;
+    {(error || mapError) && <p role="status">{error || mapError}</p>}<div className="nearby-body map-first"><Button className="map-list-toggle" variant="outline" aria-label="주변 업체 목록" aria-expanded={panel} onClick={()=>setPanel(!panel)}><MapPin size={18}/></Button>{panel && <div className="nearby-list"><p className="muted">{rows.length}개 업체 · 지도 중심 기준</p>{rows.map(row=><button key={row.id} onClick={()=>{map.current?.panTo([row.latitude,row.longitude]);open(row);}}><strong>{row.name}</strong><span>{row.industry}</span><small>{row.city || row.region} · {distance(row).toFixed(1)}km</small></button>)}{!rows.length && <div className="screen-empty"><MapPin size={24}/><strong>주변에 표시할 업체가 없어요</strong><p>{located.length?'지도를 이동하거나 반경을 넓혀보세요.':'위치 좌표가 등록된 업체가 아직 없습니다.'}</p></div>}</div>}<div ref={mapNode} className="nearby-map" aria-label="주변 업체 지도"/></div></section>;
 }
 function CalendarSelect({label,options,...props}){
   return <Select {...props}>
@@ -199,8 +222,8 @@ export function Schedule({saved}) {
     </div>}
   </section>;
 }
-export function Settings({user,count}) {
+export function Settings({user,member,count,onAccountAction,accountBusy}) {
   const [compact,setCompact]=useState(false);
   useEffect(()=>setCompact(load('outbounding.compact',false)),[]);
-  return <section className="settings-screen"><h1>설정</h1><section><h2>계정</h2><div className="setting-row"><span>사용 계정</span><span>{user?.email || (user?'익명 계정':'이 브라우저에 저장')}</span></div><div className="setting-row"><span>내 거래처</span><span>{count}개</span></div></section><section><h2>화면</h2><label className="setting-row"><span>촘촘한 리스트</span><Checkbox checked={compact} onCheckedChange={checked=>{const value=checked===true;localStorage.setItem('outbounding.compact',JSON.stringify(value));setCompact(value);document.documentElement.dataset.compact=String(value);}}/></label></section><section><h2>데이터 보관</h2><p className="muted">영업 단계, 카드 순서와 연락 일정은 이 브라우저에 저장됩니다.</p></section></section>;
+  return <section className="settings-screen"><h1>설정</h1><section><h2>계정</h2><div className="setting-row"><span>사용 계정</span><span>{user?.email || (member ? '소셜 계정' : '체험 계정')}</span></div><div className="setting-row"><span>내 거래처</span><span>{count}개</span></div><Button variant="outline" disabled={accountBusy} onClick={onAccountAction}>{member ? '로그아웃' : '가입 · 로그인'}</Button></section><section><h2>화면</h2><label className="setting-row"><span>촘촘한 리스트</span><Checkbox checked={compact} onCheckedChange={checked=>{const value=checked===true;localStorage.setItem('outbounding.compact',JSON.stringify(value));setCompact(value);document.documentElement.dataset.compact=String(value);}}/></label></section></section>;
 }

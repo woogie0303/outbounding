@@ -20,6 +20,9 @@ export default function Picker({ fields }) {
       </Button>)}</div>
     {field && <><Input autoFocus className="option-search" type="search" aria-label={active + ' 검색'} placeholder={active + ' 이름으로 찾기'} value={term} onChange={(e) => setTerm(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') e.preventDefault();}} />
     <div className="option-list" key={active}>
+      <Button variant="ghost" type="button" onClick={() => {field.change(''); setActive(null);}}>전체 {active}</Button>
+      {term.trim() && !matches.some(([, options]) => options.includes(term.trim())) &&
+        <Button variant="ghost" type="button" onClick={() => {field.change(term.trim()); setActive(null);}}>{term.trim()} 적용</Button>}
       {matches.map(([name, options]) => <section key={name}>
         <Button type="button" className="group-choice" variant="ghost" aria-expanded={Boolean(term) || group === name}
           onClick={() => setGroup(group === name ? null : name)}>{name}<span>{options.length} <ChevronDown size={13}/></span></Button>

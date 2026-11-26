@@ -26,7 +26,7 @@ function Column({stage,rows,saved,open,...selection}) {
     <SortableContext items={rows.map(row=>row.id)} strategy={verticalListSortingStrategy}><div className="board-cards">{rows.map(row=><Card key={row.id} row={row} note={saved[row.id]?.note} open={open} {...selection}/>)}</div></SortableContext>
   </section>;
 }
-export default function AccountBoard({rows,saved,open,onError,...selection}) {
+export default function AccountBoard({rows,saved,open,onError,onStageChange,...selection}) {
   const [layout,setLayout]=useState({});
   const [activeId,setActiveId]=useState(null);
   const activeRow=rows.find(row=>row.id===activeId);
@@ -44,9 +44,9 @@ export default function AccountBoard({rows,saved,open,onError,...selection}) {
   const sensors=useSensors(useSensor(PointerSensor,{activationConstraint:{distance:6}}),useSensor(KeyboardSensor,{coordinateGetter:sortableKeyboardCoordinates}));
   useEffect(()=>{try{const current=JSON.parse(localStorage.getItem('outbounding.board') || 'null');if(current){setLayout(current);return;}const old=JSON.parse(localStorage.getItem('outbounding.stages') || '{}');setLayout(Object.fromEntries(stages.map(stage=>[stage, Object.keys(old).filter(id=>({'통화 완료':'접촉 중','후속 연락':'접촉 중','관심 없음':'종료'}[old[id]] || old[id])===stage)])));}catch{onError('거래처 정렬을 불러오지 못했습니다.');}},[]);
   const groups=Object.fromEntries(stages.map(stage=>[stage,rows.filter(row=>{
-    const assigned=stages.find(value=>(layout[value] || []).includes(row.id)) || stages[0];return assigned===stage;
+    const assigned=saved[row.id]?.stage ?? stages.find(value=>(layout[value] || []).includes(row.id)) ?? stages[0];return assigned===stage;
   }).sort((a,b)=>(layout[stage] || []).indexOf(a.id)-(layout[stage] || []).indexOf(b.id))]));
-  function drop({active,over}) {
+  async function drop({active,over}) {
     setActiveId(null);
     if(!over || active.id===over.id)return;
     const source=stages.find(stage=>groups[stage].some(row=>row.id===active.id));
@@ -61,6 +61,7 @@ export default function AccountBoard({rows,saved,open,onError,...selection}) {
       const below=active.rect.current.translated && active.rect.current.translated.top > over.rect.top + over.rect.height / 2;
       next[target].splice(index<0?next[target].length:index+(below?1:0),0,active.id);
     }
+    if (source !== target && onStageChange && !await onStageChange(rows.find(row=>row.id===active.id), target)) return;
     try{localStorage.setItem('outbounding.board',JSON.stringify(next));setLayout(next);}catch{onError('정렬을 저장하지 못했습니다.');}
   }
   return <DndContext sensors={sensors} collisionDetection={collision} onDragStart={({active})=>setActiveId(active.id)} onDragCancel={()=>setActiveId(null)} onDragEnd={drop}>

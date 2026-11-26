@@ -500,3 +500,5 @@ html[data-compact=true] .workspace .crm-table td{height:30px}
 .week-event[data-done=true]{text-decoration:line-through;background:#eef3ed}
 .week-layout .day-agenda{position:absolute;right:12px;top:48px;width:min(300px,90%);z-index:3;background:white;border:1px solid #ddd;border-radius:10px;box-shadow:0 8px 28px #0002;max-height:75vh;overflow:auto}
 .agenda-close{float:right}
+.auth-provider-list,.lead-contact-fields{display:grid;gap:10px}
+.landing-account-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px}

@@ -9,16 +9,22 @@ export const industryGroups = {
   '여가·숙박': ['호텔', '펜션', '여행사', '캠핑장', '공연장', '사진관']
 };
 export const industries = Object.values(industryGroups).flat();
-export const regions = ['경기도', '서울특별시', '인천광역시', '김포시', '용인시', '수원시', '성남시', '고양시', '화성시', '이천시', '광주시', '남양주시', '하남시', '파주시', '평택시', '안양시', '부천시', '안산시', '시흥시', '광명시', '군포시', '의왕시', '과천시', '오산시', '안성시', '양주시', '동두천시', '포천시', '여주시', '구리시', '의정부시', '연천군', '가평군', '양평군'];
+const provinces = ['경기도', '서울특별시', '인천광역시', '부산광역시', '대구광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도', '경상남도', '제주특별자치도'];
+const gyeonggi = ['김포시', '용인시', '수원시', '성남시', '고양시', '화성시', '이천시', '광주시', '남양주시', '하남시', '파주시', '평택시', '안양시', '부천시', '안산시', '시흥시', '광명시', '군포시', '의왕시', '과천시', '오산시', '안성시', '양주시', '동두천시', '포천시', '여주시', '구리시', '의정부시', '연천군', '가평군', '양평군'];
+export const regionGroups = { 광역: provinces, 경기권: gyeonggi };
+export const regions = [...provinces, ...gyeonggi];
 
 export function infer(query) {
   const industry = industries.toSorted((a, b) => b.length - a.length).find((value) => query.includes(value)) ||
     [['식자재', industries[0]], ['카페', industries[1]], ['식품 제조', industries[2]], ['화장품', '화장품 업체']].find(([word]) => query.includes(word))?.[1];
-  const region = [...regions.slice(3), ...regions.slice(0, 3)].find((value) => {
-    const short = value.replace(/(특별시|광역시|도|시|군)$/u, '');
-    return new RegExp(`(?:^|[\\s,])${short}(?:특별시|광역시|도|시|군)?(?:에서|에|의|\\s|$|,)`, 'u').test(query);
-  });
+  const bySuffix = (value) => regionTerm(value, false).test(query);
+  const region = [...gyeonggi, ...provinces].find(bySuffix) || [...provinces, ...gyeonggi].find((value) => regionTerm(value).test(query));
   return { industry, region };
+}
+
+export function regionTerm(value, includeShort = true) {
+  const short = value.replace(/(?:특별자치[시도]|특별시|광역시|[도시군])$/u, '');
+  return new RegExp(`(?:^|[\\s,])${includeShort ? `(?:${value}|${short})` : value}(?:에서|에|의)?(?=[\\s,]|$)`, 'u');
 }
 
 export function findCompanies(rows, industry, region) {
